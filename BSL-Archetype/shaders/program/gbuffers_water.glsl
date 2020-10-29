@@ -183,6 +183,9 @@ vec3 GetWaterNormal(vec3 worldPos, vec3 viewPos, vec3 viewVector) {
 #include "/lib/color/waterColor.glsl"
 #include "/lib/util/dither.glsl"
 #include "/lib/util/spaceConversion.glsl"
+#ifdef OVERWORLD
+#include "/lib/atmospherics/sky.glsl"
+#endif
 #include "/lib/atmospherics/fog.glsl"
 #include "/lib/lighting/forwardLighting.glsl"
 #include "/lib/reflections/ggx.glsl"
@@ -191,7 +194,6 @@ vec3 GetWaterNormal(vec3 worldPos, vec3 viewPos, vec3 viewVector) {
 
 #ifdef OVERWORLD
 #include "/lib/atmospherics/clouds.glsl"
-#include "/lib/atmospherics/sky.glsl"
 #endif
 
 #if AA == 2

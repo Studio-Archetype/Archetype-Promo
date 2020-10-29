@@ -4,7 +4,7 @@ void GetMaterials(out float smoothness, out float skyOcclusion, out vec3 normal,
 
     smoothness = specularData.r;
     smoothness *= smoothness;
-    skyOcclusion = specularData.b;
+    skyOcclusion = specularData.g;
 
 	normal = DecodeNormal(texture2D(colortex6, coord).xy);
 

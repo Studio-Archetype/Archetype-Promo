@@ -1,4 +1,4 @@
-void PromoOutline(inout vec3 color, sampler2D depth) {
+vec3 PromoOutline(vec3 color, sampler2D depth) {
 	float ph = 1.0 / viewHeight;
 	float pw = ph / aspectRatio;
 
@@ -33,4 +33,6 @@ void PromoOutline(inout vec3 color, sampler2D depth) {
 	color = sqrt(sqrt(color));
 	color *= outline;
 	color *= color; color *= color;
+
+	return color;
 }

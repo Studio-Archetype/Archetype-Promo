@@ -32,12 +32,12 @@ uniform mat4 gbufferProjection, gbufferPreviousProjection, gbufferProjectionInve
 uniform mat4 gbufferModelView, gbufferPreviousModelView, gbufferModelViewInverse;
 
 uniform sampler2D colortex0;
+uniform sampler2D colortex3;
 uniform sampler2D depthtex0;
 
 #if defined ADVANCED_MATERIALS && defined REFLECTION_SPECULAR
 uniform vec3 cameraPosition, previousCameraPosition;
 
-uniform sampler2D colortex3;
 uniform sampler2D colortex5;
 uniform sampler2D colortex6;
 uniform sampler2D colortex7;
@@ -62,6 +62,27 @@ float frametime = float(worldTime) * 0.05 * ANIMATION_SPEED;
 float frametime = frameTimeCounter * ANIMATION_SPEED;
 #endif
 
+vec2 glowOffsets[16] = vec2[16](
+    vec2( 0.0, -1.0),
+    vec2(-1.0,  0.0),
+    vec2( 1.0,  0.0),
+    vec2( 0.0,  1.0),
+    vec2(-1.0, -2.0),
+    vec2( 0.0, -2.0),
+    vec2( 1.0, -2.0),
+    vec2(-2.0, -1.0),
+    vec2( 2.0, -1.0),
+    vec2(-2.0,  0.0),
+    vec2( 2.0,  0.0),
+    vec2(-2.0,  1.0),
+    vec2( 2.0,  1.0),
+    vec2(-1.0,  2.0),
+    vec2( 0.0,  2.0),
+    vec2( 1.0,  2.0)
+);
+
+vec3 lightVec = sunVec * ((timeAngle < 0.5325 || timeAngle > 0.9675) ? 1.0 : -1.0);
+
 //Common Functions//
 float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
@@ -76,12 +97,25 @@ float InterleavedGradientNoise() {
 	return fract(n + frameCounter / 8.0);
 }
 
+void GlowOutline(inout vec3 color){
+	for(int i = 0; i < 16; i++){
+		vec2 glowOffset = glowOffsets[i] / vec2(viewWidth, viewHeight);
+		float glowSample = texture2D(colortex3, texCoord.xy + glowOffset).b;
+		if(glowSample < 0.5){
+			if(i < 4) color.rgb = vec3(0.0);
+			else color.rgb = vec3(0.5);
+			break;
+		}
+	}
+}
+
 //Includes//
 #include "/lib/color/dimensionColor.glsl"
 #include "/lib/color/skyColor.glsl"
 #include "/lib/color/blocklightColor.glsl"
 #include "/lib/color/waterColor.glsl"
 #include "/lib/util/dither.glsl"
+#include "/lib/atmospherics/sky.glsl"
 #include "/lib/atmospherics/fog.glsl"
 #include "/lib/outline/outlineOffset.glsl"
 
@@ -107,8 +141,9 @@ float InterleavedGradientNoise() {
 
 //Program//
 void main() {
-    vec4 color = texture2D(colortex0, texCoord);
-	float z    = texture2D(depthtex0, texCoord).r;
+    vec4 color      = texture2D(colortex0, texCoord);
+	float z         = texture2D(depthtex0, texCoord).r;
+	float isGlowing = texture2D(colortex3, texCoord).b;
 
 	float dither = Bayer64(gl_FragCoord.xy);
 	
@@ -180,7 +215,7 @@ void main() {
 		#endif
 
 		#ifdef PROMO_OUTLINE
-		PromoOutline(color.rgb, depthtex0);
+		color.rgb = PromoOutline(color.rgb, depthtex0);
 		#endif
 
 		#ifdef FOG
@@ -200,6 +235,8 @@ void main() {
 
 		if (blindFactor > 0.0) color.rgb *= 1.0 - blindFactor;
 	}
+
+	if (isGlowing > 0.5) GlowOutline(color.rgb);
     
 	/*DRAWBUFFERS:05*/
     gl_FragData[0] = color;

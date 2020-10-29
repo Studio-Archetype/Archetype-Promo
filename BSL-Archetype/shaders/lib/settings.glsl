@@ -42,7 +42,7 @@ https://bitslablab.com
   #define SHARPEN 0 //[0 1 2 3 4 5]
   #define AUTO_EXPOSURE
   #define VIGNETTE
-  #define RETRO_FILTER
+//#define RETRO_FILTER
 
 //#define COLOR_GRADING
   #define TONEMAP_EXPOSURE 4.0 //[1.0 1.4 2.0 2.8 4.0 5.6 8.0 11.3 16.0]
@@ -242,8 +242,8 @@ https://bitslablab.com
   #define WAVING_VINES
   #define WAVING_LILYPAD
   #define WAVING_FIRE
-  #define WAVING_WATER
-  #define WAVING_LAVA
+//#define WAVING_WATER
+//#define WAVING_LAVA
   #define WAVING_LANTERN
 
 //World//
@@ -252,7 +252,7 @@ https://bitslablab.com
   #define WEATHER_OPACITY 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00]
   #define FOG
   #define FOG_DENSITY 1.00 //[0.25 0.50 0.75 1.00 1.50 2.00 2.50 3.00 3.50 4.00]
-  #define WORLD_CURVATURE
+//#define WORLD_CURVATURE
   #define WORLD_CURVATURE_SIZE 256 //[-256 -512 -1024 -2048 -4096 4096 2048 1024 512 256 128 64 32 16]
 //#define WORLD_TIME_ANIMATION
   #define ANIMATION_SPEED 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 2.50 3.00 3.50 4.00 5.00 6.00 7.00 8.00]

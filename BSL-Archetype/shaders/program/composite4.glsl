@@ -44,8 +44,12 @@ vec3 BloomTile(float lod, vec2 offset) {
 		}
 		bloom /= 4096.0;
 	}
+	
+	float bloomThreshold = length(bloom);
+	bloomThreshold /= 0.125 + bloomThreshold;
+	bloomThreshold *= bloomThreshold;
 
-	return pow(bloom / 128.0, vec3(0.25));
+	return pow(bloom * bloomThreshold / 128.0, vec3(0.25));
 }
 
 //Program//

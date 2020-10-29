@@ -85,18 +85,19 @@ void main() {
 	vec4 screenPos = vec4(texCoord.x, texCoord.y, z0, 1.0);
 	vec4 viewPos = gbufferProjectionInverse * (screenPos * 2.0 - 1.0);
 	viewPos /= viewPos.w;
+	
+    float lz0 = GetLinearDepth(z0) * far;
+	float effectMix = clamp(0.03125 * lz0, 0.0, 1.0);
     
 	#if defined AO || defined LIGHT_SHAFT
 	float dither = Bayer64(gl_FragCoord.xy);
 	#endif
 
 	#ifdef AO
-    float lz0 = GetLinearDepth(z0) * far;
 	if (z1 - z0 > 0.0 && lz0 < 32.0) {
 		if (dot(translucent, translucent) < 0.02) {
             float ao = AmbientOcclusion(depthtex0, dither);
-            float aoMix = clamp(0.03125 * lz0, 0.0 , 1.0);
-            color.rgb *= mix(ao, 1.0, aoMix);
+            color.rgb *= mix(ao, 1.0, effectMix);
         }
 	}
 	#endif
@@ -112,7 +113,10 @@ void main() {
 	#endif
 	
 	#ifdef PROMO_OUTLINE
-	if (z1 - z0 > 0.0) PromoOutline(color.rgb, depthtex0);
+	if (z1 - z0 > 0.0){
+		vec3 promoColor = PromoOutline(color.rgb, depthtex0);
+		color.rgb = mix(promoColor, color.rgb, effectMix);
+	}
 	#endif
 	
 	#ifdef LIGHT_SHAFT

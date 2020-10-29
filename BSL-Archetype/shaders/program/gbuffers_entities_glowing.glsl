@@ -12,8 +12,6 @@ https://bitslablab.com
 //Extensions//
 
 //Varyings//
-varying float isMainHand;
-
 varying vec2 texCoord, lmCoord;
 
 varying vec3 normal;
@@ -31,8 +29,8 @@ varying vec4 vTexCoord, vTexCoordAM;
 #endif
 
 //Uniforms//
+uniform int entityId;
 uniform int frameCounter;
-uniform int heldItemId, heldItemId2;
 uniform int isEyeInWater;
 uniform int worldTime;
 
@@ -45,6 +43,8 @@ uniform float timeAngle, timeBrightness;
 uniform float viewWidth, viewHeight;
 
 uniform ivec2 eyeBrightnessSmooth;
+
+uniform vec4 entityColor;
 
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
@@ -88,10 +88,6 @@ float InterleavedGradientNoise() {
 	return fract(n + frameCounter / 8.0);
 }
 
-float GetHandItem(int id) {
-	return float((heldItemId == id && isMainHand > 0.5) || (heldItemId2 == id && isMainHand < 0.5));
-}
-
 //Includes//
 #include "/lib/color/blocklightColor.glsl"
 #include "/lib/color/dimensionColor.glsl"
@@ -123,11 +119,12 @@ void main() {
 
 	#ifdef ADVANCED_MATERIALS
 	vec2 newCoord = vTexCoord.st * vTexCoordAM.pq + vTexCoordAM.st;
-	float skipAdvMat = float(heldItemId  == 358 || (heldItemId2 == 358 && isMainHand  < 0.5));
+	float parallaxFade = clamp((dist - PARALLAX_DISTANCE) / 32.0, 0.0, 1.0);
+	float skipAdvMat = float(entityId == 10100);
 	
 	#ifdef PARALLAX
 	if (skipAdvMat < 0.5) {
-		newCoord = GetParallaxCoord(0.0);
+		newCoord = GetParallaxCoord(parallaxFade);
 		albedo = texture2DGradARB(texture, newCoord, dcdx, dcdy) * color;
 	}
 	#endif
@@ -136,13 +133,28 @@ void main() {
 	vec3 fresnel3 = vec3(0.0);
 	#endif
 
-	if (albedo.a > 0.001) {
+	albedo.rgb = mix(albedo.rgb, entityColor.rgb, entityColor.a);
+	
+	float lightningBolt = float(entityId == 10101);
+	if(lightningBolt > 0.5) {
+		#ifdef OVERWORLD
+		albedo.rgb = pow(weatherCol.rgb / weatherCol.a, vec3(3.0));
+		#endif
+		#ifdef NETHER
+		albedo.rgb = sqrt(netherCol.rgb / netherCol.a);
+		#endif
+		#ifdef END
+		albedo.rgb = endCol.rgb / endCol.a;
+		#endif
+		albedo.a = 1.0;
+	}
+
+	if (albedo.a > 0.001 && lightningBolt < 0.5) {
 		vec2 lightmap = clamp(lmCoord, vec2(0.0), vec2(1.0));
-		lightmap.x = max(lightmap.x, GetHandItem(213));
+			  
+		float emissive = float(entityColor.a > 0.05) * 0.125;
 
-		float emissive = (GetHandItem(50) + GetHandItem(83) + GetHandItem(213)) * 0.25;
-
-		vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z + 0.38);
+		vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
 		#if AA == 2
 		vec3 viewPos = ToNDC(vec3(TAAJitter(screenPos.xy, -0.5), screenPos.z));
 		#else
@@ -155,7 +167,7 @@ void main() {
 		vec3 normalMap = vec3(0.0, 0.0, 1.0);
 		
 		GetMaterials(smoothness, metalness, f0, emissive, ao, normalMap, newCoord, dcdx, dcdy);
-
+					 
 		#if MC_VERSION >= 11500 && defined TEMPORARY_FIX
 		normalMap = vec3(0.0, 0.0, 1.0);
 		#endif
@@ -164,23 +176,16 @@ void main() {
 							  tangent.y, binormal.y, normal.y,
 							  tangent.z, binormal.z, normal.z);
 
-		if (normalMap.x > -0.999 && normalMap.y > -0.999)
+		if (normalMap.x > -0.999 && normalMap.y > -0.999 && skipAdvMat < 0.5)
 			newNormal = clamp(normalize(normalMap * tbnMatrix), vec3(-1.0), vec3(1.0));
 		#endif
-
+		
     	albedo.rgb = pow(albedo.rgb, vec3(2.2));
-
-		float doRecolor = GetHandItem(89) + GetHandItem(213);
-
-		float ec = GetLuminance(albedo.rgb) * 1.7;
-		if (doRecolor > 0.5) {
-			albedo.rgb *= ec * 0.25 + 0.5;
-		}
 
 		#ifdef WHITE_WORLD
 		albedo.rgb = vec3(0.5);
 		#endif
-
+		
 		float NoL = clamp(dot(newNormal, lightVec) * 1.01 - 0.01, 0.0, 1.0);
 
 		float NoU = clamp(dot(newNormal, upVec), -1.0, 1.0);
@@ -207,8 +212,8 @@ void main() {
 		doParallax = float(NoL > 0.0);
 		#endif
 		
-		if (doParallax > 0.5 && skipAdvMat < 0.5) {
-			parallaxShadow = GetParallaxShadow(0.0, newCoord, lightVec, tbnMatrix);
+		if (doParallax > 0.5) {
+			parallaxShadow = GetParallaxShadow(parallaxFade, newCoord, lightVec, tbnMatrix);
 			NoL *= parallaxShadow;
 		}
 		#endif
@@ -244,12 +249,13 @@ void main() {
 		#endif
 	}
 
-    /* DRAWBUFFERS:0 */
+    /* DRAWBUFFERS:03 */
     gl_FragData[0] = albedo;
+	gl_FragData[1] = vec4(0.0, 0.0, 1.0, 1.0);
 
 	#if defined ADVANCED_MATERIALS && defined REFLECTION_SPECULAR
 	/* DRAWBUFFERS:0367 */
-	gl_FragData[1] = vec4(smoothness, skyOcclusion, 0.0, 1.0);
+	gl_FragData[1] = vec4(smoothness, skyOcclusion, 1.0, 1.0);
 	gl_FragData[2] = vec4(EncodeNormal(newNormal), float(gl_FragCoord.z < 1.0), 1.0);
 	gl_FragData[3] = vec4(fresnel3, 1.0);
 	#endif
@@ -261,8 +267,6 @@ void main() {
 #ifdef VSH
 
 //Varyings//
-varying float isMainHand;
-
 varying vec2 texCoord, lmCoord;
 
 varying vec3 normal;
@@ -288,7 +292,6 @@ uniform float timeAngle;
 uniform vec3 cameraPosition;
 
 uniform mat4 gbufferModelView, gbufferModelViewInverse;
-uniform mat4 gbufferProjection;
 
 #if AA == 2
 uniform int frameCounter;
@@ -316,6 +319,10 @@ float frametime = frameTimeCounter * ANIMATION_SPEED;
 #include "/lib/util/jitter.glsl"
 #endif
 
+#ifdef WORLD_CURVATURE
+#include "/lib/vertex/worldCurvature.glsl"
+#endif
+
 //Program//
 void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
@@ -326,8 +333,8 @@ void main() {
 	normal = normalize(gl_NormalMatrix * gl_Normal);
 
 	#ifdef ADVANCED_MATERIALS
-	binormal = normalize(gl_NormalMatrix * cross(at_tangent.xyz, gl_Normal.xyz) * at_tangent.w);
 	tangent  = normalize(gl_NormalMatrix * at_tangent.xyz);
+	binormal = normalize(gl_NormalMatrix * cross(at_tangent.xyz, gl_Normal.xyz) * at_tangent.w);
 	
 	mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
 						  tangent.y, binormal.y, normal.y,
@@ -342,13 +349,11 @@ void main() {
 
 	vTexCoordAM.pq  = abs(texMinMidCoord) * 2;
 	vTexCoordAM.st  = min(texCoord, midCoord - texMinMidCoord);
-	
+
 	vTexCoord.xy    = sign(texMinMidCoord) * 0.5 + 0.5;
 	#endif
     
 	color = gl_Color;
-
-	isMainHand = float(gl_ModelViewMatrix[3][0] > 0.0);
 
 	const vec2 sunRotationData = vec2(cos(sunPathRotation * 0.01745329251994), -sin(sunPathRotation * 0.01745329251994));
 	float ang = fract(timeAngle - 0.25);
@@ -358,7 +363,15 @@ void main() {
 	upVec = normalize(gbufferModelView[1].xyz);
 	eastVec = normalize(gbufferModelView[0].xyz);
 
+    #ifdef WORLD_CURVATURE
+	vec4 position = gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex;
+	position.y -= WorldCurvature(position.xz);
+	gl_Position = gl_ProjectionMatrix * gbufferModelView * position;
+	#else
 	gl_Position = ftransform();
+    #endif
+
+	gl_Position.z *= 0.01;
 	
 	#if AA == 2
 	gl_Position.xy = TAAJitter(gl_Position.xy, gl_Position.w);
