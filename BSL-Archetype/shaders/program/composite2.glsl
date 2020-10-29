@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -24,11 +24,11 @@ uniform sampler2D colortex0;
 uniform sampler2D depthtex1;
 
 //Common Functions//
-vec3 MotionBlur(vec3 color, float z, float dither){
+vec3 MotionBlur(vec3 color, float z, float dither) {
 	
 	float hand = float(z < 0.56);
 
-	if (hand < 0.5){
+	if (hand < 0.5) {
 		float mbwg = 0.0;
 		vec2 doublePixel = 2.0 / vec2(viewWidth, viewHeight);
 		vec3 mblur = vec3(0.0);
@@ -49,13 +49,14 @@ vec3 MotionBlur(vec3 color, float z, float dither){
 		vec2 velocity = (currentPosition - previousPosition).xy;
 		velocity = velocity / (1.0 + length(velocity)) * MOTION_BLUR_STRENGTH * 0.02;
 		
-		vec2 coord = texCoord.st - velocity * (3.5 + dither);
-		for(int i = 0; i < 9; i++, coord += velocity){
-			vec2 coordb = clamp(coord, doublePixel, 1.0 - doublePixel);
-			mblur += texture2DLod(colortex0, coordb, 0.0).rgb;
-			mbwg += 1.0;
+		vec2 coord = texCoord.st - velocity * (1.5 + dither);
+		for(int i = 0; i < 5; i++, coord += velocity) {
+			vec2 sampleCoord = clamp(coord, doublePixel, 1.0 - doublePixel);
+			float mask = float(texture2D(depthtex1, sampleCoord).r > 0.56);
+			mblur += texture2DLod(colortex0, sampleCoord, 0.0).rgb * mask;
+			mbwg += mask;
 		}
-		mblur /= mbwg;
+		mblur /= max(mbwg, 1.0);
 
 		return mblur;
 	}
@@ -67,12 +68,13 @@ vec3 MotionBlur(vec3 color, float z, float dither){
 #include "/lib/util/dither.glsl"
 
 #ifdef BLACK_OUTLINE
+#include "/lib/outline/outlineOffset.glsl"
 #include "/lib/outline/depthOutline.glsl"
 #endif
 
 //Program//
-void main(){
-    vec3 color = texture2D(colortex0,texCoord).rgb;
+void main() {
+    vec3 color = texture2DLod(colortex0, texCoord, 0.0).rgb;
 	
 	#ifdef MOTION_BLUR
 	float z = texture2D(depthtex1, texCoord.st).x;
@@ -98,7 +100,7 @@ void main(){
 varying vec2 texCoord;
 
 //Program//
-void main(){
+void main() {
 	texCoord = gl_MultiTexCoord0.xy;
 	
 	gl_Position = ftransform();

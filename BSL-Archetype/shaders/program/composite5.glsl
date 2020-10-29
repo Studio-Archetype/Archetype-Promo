@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -32,10 +32,6 @@ uniform sampler2D colortex2;
 uniform sampler2D noisetex;
 uniform sampler2D depthtex1;
 
-#ifdef DIRTY_LENS
-uniform sampler2D depthtex2;
-#endif
-
 #ifdef LENS_FLARE
 uniform vec3 sunPosition;
 uniform mat4 gbufferProjection;
@@ -56,22 +52,27 @@ float pw = 1.0 / viewWidth;
 float ph = 1.0 / viewHeight;
 
 //Common Functions//
-float GetLuminance(vec3 color){
+float GetLuminance(vec3 color) {
 	return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
-void UnderwaterDistort(inout vec2 texCoord){
+void UnderwaterDistort(inout vec2 texCoord) {
 	vec2 originalTexCoord = texCoord;
 
-	texCoord +=vec2(cos(texCoord.y * 32.0 + frameTimeCounter * 3.0),
-	                sin(texCoord.x * 32.0 + frameTimeCounter * 1.7)) * 0.0005;
+	texCoord += vec2(
+		cos(texCoord.y * 32.0 + frameTimeCounter * 3.0),
+		sin(texCoord.x * 32.0 + frameTimeCounter * 1.7)
+	) * 0.0005;
 
-	float mask = float(texCoord.x > 0.0 && texCoord.x < 1.0 &&
-	                   texCoord.y > 0.0 && texCoord.y < 1.0);
+	float mask = float(
+		texCoord.x > 0.0 && texCoord.x < 1.0 &&
+	    texCoord.y > 0.0 && texCoord.y < 1.0
+	)
+	;
 	if (mask < 0.5) texCoord = originalTexCoord;
 }
 
-void RetroDither(inout vec3 color, float dither){
+void RetroDither(inout vec3 color, float dither) {
 	color.rgb = pow(color.rgb, vec3(0.25));
 	float lenColor = length(color);
 	vec3 normColor = color / lenColor;
@@ -82,13 +83,12 @@ void RetroDither(inout vec3 color, float dither){
 	color = max(pow(color.rgb, vec3(4.0)), vec3(0.0));
 }
 
-vec3 GetBloomTile(float lod, vec2 coord, vec2 offset){
-	vec3 bloom = texture2D(colortex1, coord / pow(2.0, lod) + offset).rgb;
-	bloom *= bloom; bloom *= bloom;
-	return bloom * 128.0;
+vec3 GetBloomTile(float lod, vec2 coord, vec2 offset) {
+	vec3 bloom = texture2D(colortex1, coord / exp2(lod) + offset).rgb;
+	return pow(bloom, vec3(4.0)) * 128.0;
 }
 
-void Bloom(inout vec3 color, vec2 coord){
+void Bloom(inout vec3 color, vec2 coord) {
 	vec3 blur1 = GetBloomTile(2.0, coord, vec2(0.0      , 0.0   ));
 	vec3 blur2 = GetBloomTile(3.0, coord, vec2(0.0      , 0.26  ));
 	vec3 blur3 = GetBloomTile(4.0, coord, vec2(0.135    , 0.26  ));
@@ -96,25 +96,13 @@ void Bloom(inout vec3 color, vec2 coord){
 	vec3 blur5 = GetBloomTile(6.0, coord, vec2(0.135    , 0.3325));
 	vec3 blur6 = GetBloomTile(7.0, coord, vec2(0.160625 , 0.3325));
 	vec3 blur7 = GetBloomTile(8.0, coord, vec2(0.1784375, 0.3325));
-	
-	#ifdef DIRTY_LENS
-	float newAspectRatio = 1.777777777777778 / aspectRatio;
-	vec2 scale = vec2(max(newAspectRatio, 1.0), max(1.0 / newAspectRatio, 1.0));
-	float dirt = texture2D(depthtex2, (coord - 0.5) / scale + 0.5).r;
-	dirt *= length(blur6 / (1.0 + blur6));
-	blur3 *= dirt *  0.7 + 1.0;
-	blur4 *= dirt *  1.4 + 1.0;
-	blur5 *= dirt *  2.8 + 1.0;
-	blur6 *= dirt *  5.6 + 1.0;
-	blur7 *= dirt * 11.2 + 1.0;
-	#endif
 
 	vec3 blur = (blur1 + blur2 + blur3 + blur4 + blur5 + blur6 + blur7) * 0.14;
 	
 	color = mix(color, blur, 0.18 * BLOOM_STRENGTH);
 }
 
-void AutoExposure(inout vec3 color, inout float exposure, float tempExposure){
+void AutoExposure(inout vec3 color, inout float exposure, float tempExposure) {
 	float exposureLod = log2(viewWidth * 0.4);
 	
 	exposure = length(texture2DLod(colortex0, vec2(0.5), exposureLod).rgb);
@@ -123,7 +111,7 @@ void AutoExposure(inout vec3 color, inout float exposure, float tempExposure){
 	color /= 2.5 * clamp(tempExposure, 0.001, 10.0) + 0.125;
 }
 
-void ColorGrading(inout vec3 color){
+void ColorGrading(inout vec3 color) {
 	vec3 cgColor = pow(color.r, CG_RC) * pow(vec3(CG_RR, CG_RG, CG_RB) / 255.0, vec3(2.2)) +
 				   pow(color.g, CG_GC) * pow(vec3(CG_GR, CG_GG, CG_GB) / 255.0, vec3(2.2)) +
 				   pow(color.b, CG_BC) * pow(vec3(CG_BR, CG_BG, CG_BB) / 255.0, vec3(2.2));
@@ -134,13 +122,13 @@ void ColorGrading(inout vec3 color){
 	color = mix(color, cgTint, CG_TM);
 }
 
-void BSLTonemap(inout vec3 color){
+void BSLTonemap(inout vec3 color) {
 	color = TONEMAP_EXPOSURE * color;
 	color = color / pow(pow(color, vec3(TONEMAP_WHITE_CURVE)) + 1.0, vec3(1.0 / TONEMAP_WHITE_CURVE));
 	color = pow(color, mix(vec3(TONEMAP_LOWER_CURVE), vec3(TONEMAP_UPPER_CURVE), sqrt(color)));
 }
 
-void ColorSaturation(inout vec3 color){
+void ColorSaturation(inout vec3 color) {
 	float grayVibrance = (color.r + color.g + color.b) / 3.0;
 	float graySaturation = grayVibrance;
 	if (SATURATION < 1.00) graySaturation = dot(color, vec3(0.299, 0.587, 0.114));
@@ -156,7 +144,7 @@ void ColorSaturation(inout vec3 color){
 }
 
 #ifdef LENS_FLARE
-vec2 GetLightPos(){
+vec2 GetLightPos() {
 	vec4 tpos = gbufferProjection * vec4(sunPosition, 1.0);
 	tpos.xyz /= tpos.w;
 	return tpos.xy / tpos.z * 0.5;
@@ -176,7 +164,7 @@ vec2 GetLightPos(){
 #endif
 
 //Program//
-void main(){
+void main() {
     vec2 newTexCoord = texCoord;
 	if (isEyeInWater == 1.0) UnderwaterDistort(newTexCoord);
 	
@@ -236,11 +224,11 @@ void main(){
 
 	#ifdef LENS_FLARE
 	if (texCoord.x > 2.0 * pw && texCoord.x < 4.0 * pw && texCoord.y < 2.0 * ph)
-		temporalData = mix(tempVisibleSun, visibleSun, 0.1);
+		temporalData = mix(tempVisibleSun, visibleSun, 0.125);
 	#endif
 	
     #ifdef VIGNETTE
-    color *= 1.0 - length(texCoord.xy - 0.5) * (1.0 - GetLuminance(color));
+    color *= 1.0 - length(texCoord - 0.5) * (1.0 - GetLuminance(color));
 	#endif
 	
 	color = pow(color, vec3(1.0 / 2.2));
@@ -271,7 +259,7 @@ uniform float timeAngle;
 uniform mat4 gbufferModelView;
 
 //Program//
-void main(){
+void main() {
 	texCoord = gl_MultiTexCoord0.xy;
 	
 	gl_Position = ftransform();

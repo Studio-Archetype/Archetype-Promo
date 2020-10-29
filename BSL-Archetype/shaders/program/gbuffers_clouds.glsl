@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -13,7 +13,7 @@ https://bitslablab.com
 varying vec2 texCoord;
 
 varying vec3 normal;
-varying vec3 sunVec, upVec;
+varying vec3 sunVec, upVec, eastVec;
 
 varying vec4 color;
 
@@ -37,12 +37,12 @@ float moonVisibility = clamp(dot(-sunVec, upVec) + 0.05, 0.0, 0.1) * 10.0;
 #include "/lib/color/lightColor.glsl"
 
 //Program//
-void main(){
-	vec4 albedo = texture2D(texture, texCoord.xy);
+void main() {
+	vec4 albedo = texture2D(texture, texCoord);
 	albedo.rgb = pow(albedo.rgb,vec3(2.2));
 	
-	float quarterNdotU = clamp(0.25 * dot(normal, upVec) + 0.75,0.5,1.0);
-	albedo.rgb *= lightCol * (quarterNdotU * (0.3 * sunVisibility + 0.2));
+	float vanillaDiffuse = clamp(0.25 * dot(normal, upVec) + 0.75,0.5,1.0);
+	albedo.rgb *= lightCol * (vanillaDiffuse * (0.3 * sunVisibility + 0.2));
 	
 	albedo.a *= 0.5 * color.a;
 	
@@ -66,7 +66,7 @@ void main(){
 varying vec2 texCoord;
 
 varying vec3 normal;
-varying vec3 sunVec, upVec;
+varying vec3 sunVec, upVec, eastVec;
 
 varying vec4 color;
 
@@ -84,7 +84,7 @@ uniform float timeAngle;
 uniform mat4 gbufferModelView;
 
 //Program//
-void main(){
+void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 
 	color = gl_Color;
@@ -97,6 +97,7 @@ void main(){
 	sunVec = normalize((gbufferModelView * vec4(vec3(-sin(ang), cos(ang) * sunRotationData) * 2000.0, 1.0)).xyz);
 
 	upVec = normalize(gbufferModelView[1].xyz);
+	eastVec = normalize(gbufferModelView[0].xyz);
 	
 	gl_Position = ftransform();
 	

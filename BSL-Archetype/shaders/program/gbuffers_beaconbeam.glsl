@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -21,15 +21,8 @@ uniform sampler2D texture;
 #include "/lib/color/blocklightColor.glsl"
 
 //Program//
-void main(){
-	vec4 albedo = texture2D(texture, texCoord.xy) * color;
-	
-	#ifdef EMISSIVE_RECOLOR
-	if (dot(color.rgb, vec3(1.0)) > 2.66){
-		float ec = length(albedo.rgb);
-		albedo.rgb = blocklightCol * (ec * 0.63 / BLOCKLIGHT_I) + ec * 0.07;
-	}
-	#endif
+void main() {
+	vec4 albedo = texture2D(texture, texCoord) * color;
     
 	albedo.rgb = pow(albedo.rgb,vec3(2.2)) * 4.0;
 	
@@ -78,7 +71,7 @@ uniform mat4 gbufferModelViewInverse;
 #endif
 
 //Program//
-void main(){
+void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 
 	color = gl_Color;

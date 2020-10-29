@@ -1,5 +1,5 @@
 //Dithering from Jodie
-float Bayer2(vec2 a){
+float Bayer2(vec2 a) {
     a = floor(a);
     return fract(dot(a, vec2(0.5, a.y * 0.75)));
 }

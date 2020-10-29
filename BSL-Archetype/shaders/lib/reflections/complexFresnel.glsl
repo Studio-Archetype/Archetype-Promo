@@ -1,4 +1,4 @@
-vec3 GetN(int idx){
+vec3 GetN(int idx) {
     if (idx == 230) return vec3(2.9114, 2.9497, 2.5845);
     if (idx == 231) return vec3(0.18299, 0.42108, 1.3734);
     if (idx == 232) return vec3(1.3456, 0.96521, 0.61722);
@@ -10,7 +10,7 @@ vec3 GetN(int idx){
     return vec3(0.0);
 }
 
-vec3 GetK(int idx){
+vec3 GetK(int idx) {
     if (idx == 230) return vec3(3.0893, 2.9318, 2.7670);
     if (idx == 231) return vec3(3.4242, 2.3459, 1.7704);
     if (idx == 232) return vec3(7.4746, 6.3995, 5.3031);

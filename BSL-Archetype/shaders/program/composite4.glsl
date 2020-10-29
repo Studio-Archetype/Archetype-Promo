@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -27,13 +27,13 @@ float ph = 1.0 / viewHeight;
 float weight[7] = float[7](1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0);
 
 //Common Functions//
-vec3 BloomTile(float lod, vec2 offset){
+vec3 BloomTile(float lod, vec2 offset) {
 	vec3 bloom = vec3(0.0), temp = vec3(0.0);
-	float scale = pow(2.0, lod);
+	float scale = exp2(lod);
 	vec2 coord = (texCoord - offset) * scale;
 	float padding = 0.5 + 0.005 * scale;
 
-	if (abs(coord.x - 0.5) < padding && abs(coord.y - 0.5) < padding){
+	if (abs(coord.x - 0.5) < padding && abs(coord.y - 0.5) < padding) {
 		for(int i = -3; i <= 3; i++) {
 			for(int j = -3; j <= 3; j++) {
 				float wg = weight[i + 3] * weight[j + 3];
@@ -49,7 +49,7 @@ vec3 BloomTile(float lod, vec2 offset){
 }
 
 //Program//
-void main(){
+void main() {
     //Bloom Tile
 	vec3 blur =  BloomTile(2.0, vec2(0.0      , 0.0   ));
 	     blur += BloomTile(3.0, vec2(0.0      , 0.26  ));
@@ -72,7 +72,7 @@ void main(){
 varying vec2 texCoord;
 
 //Program//
-void main(){
+void main() {
 	texCoord = gl_MultiTexCoord0.xy;
 	
 	gl_Position = ftransform();

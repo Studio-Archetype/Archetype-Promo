@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -15,6 +15,8 @@ varying vec2 texCoord;
 //Uniforms//
 uniform float viewWidth, viewHeight, aspectRatio;
 uniform float centerDepthSmooth;
+
+uniform mat4 gbufferProjection;
 
 uniform sampler2D colortex0;
 uniform sampler2D depthtex1;
@@ -87,17 +89,18 @@ vec2 dofOffsets[60] = vec2[60](
 );
 
 //Common Functions//
-vec3 DepthOfField(vec3 color, float z){
+vec3 DepthOfField(vec3 color, float z) {
 	vec3 dof = vec3(0.0);
 	float hand = float(z < 0.56);
 	
-	float coc = max(abs(z - centerDepthSmooth) * DOF_STRENGTH - 0.0001, 0.0);
+	float fovScale = gbufferProjection[1][1] / 1.37;
+	float coc = max(abs(z - centerDepthSmooth) * DOF_STRENGTH - 0.01, 0.0);
 	coc = coc / sqrt(coc * coc + 0.1);
 	
-	if (coc * 0.015 > 1.0 / max(viewWidth, viewHeight) && hand < 0.5){
+	if (coc > 0.0 && hand < 0.5) {
 		for(int i = 0; i < 60; i++) {
-			vec2 offset = dofOffsets[i] * coc * 0.0085 * vec2(1.0, aspectRatio);
-			float lod = log2(viewHeight * aspectRatio / 320.0) * coc;
+			vec2 offset = dofOffsets[i] * coc * 0.015 * fovScale * vec2(1.0 / aspectRatio, 1.0);
+			float lod = log2(viewHeight * aspectRatio * coc * fovScale / 320.0);
 			dof += texture2DLod(colortex0, texCoord + offset, lod).rgb;
 		}
 		dof /= 60.0;
@@ -107,20 +110,13 @@ vec3 DepthOfField(vec3 color, float z){
 }
 
 //Includes//
-#ifdef BLACK_OUTLINE
-#include "/lib/outline/depthOutline.glsl"
-#endif
 
 //Program//
-void main(){
-	vec3 color = texture2D(colortex0,texCoord).rgb;
+void main() {
+	vec3 color = texture2DLod(colortex0, texCoord, 0.0).rgb;
 	
 	#ifdef DOF
 	float z = texture2D(depthtex1, texCoord.st).x;
-
-	#ifdef BLACK_OUTLINE
-	DepthOutline(z);
-	#endif
 
 	color = DepthOfField(color, z);
 	#endif
@@ -138,7 +134,7 @@ void main(){
 varying vec2 texCoord;
 
 //Program//
-void main(){
+void main() {
 	texCoord = gl_MultiTexCoord0.xy;
 	
 	gl_Position = ftransform();

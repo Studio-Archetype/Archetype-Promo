@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -35,7 +35,7 @@ float sunVisibility = clamp(dot(sunVec, upVec) + 0.05, 0.0, 0.1) * 10.0;
 float moonVisibility = clamp(dot(-sunVec, upVec) + 0.05, 0.0, 0.1) * 10.0;
 
 //Common Functions//
-float GetLuminance(vec3 color){
+float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
 }
 
@@ -45,24 +45,19 @@ float GetLuminance(vec3 color){
 #endif
 
 //Program//
-void main(){
-	vec4 albedo = texture2D(texture, texCoord.xy);
+void main() {
+	vec4 albedo = texture2D(texture, texCoord);
 
 	#ifdef OVERWORLD
 	albedo *= color;
 	albedo.rgb = pow(albedo.rgb,vec3(2.2)) * SKYBOX_BRIGHTNESS * albedo.a;
 
 	#ifdef CLOUDS
-	if (albedo.a > 0.0){
+	if (albedo.a > 0.0) {
 		float cloudAlpha = texture2D(gaux1, gl_FragCoord.xy / vec2(viewWidth, viewHeight)).r;
 		float alphaMult = 1.0 - 0.6 * rainStrength;
 		albedo.a *= 1.0 - cloudAlpha / (alphaMult * alphaMult);
 	}
-	#endif
-	
-	#ifdef SKY_DESATURATION
-    vec3 desat = GetLuminance(albedo.rgb) * pow(lightNight,vec3(1.6)) * 4.0;
-	albedo.rgb = mix(desat, albedo.rgb, sunVisibility);
 	#endif
 	#endif
 
@@ -100,7 +95,7 @@ uniform float viewHeight;
 #endif
 
 //Program//
-void main(){
+void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 
 	color = gl_Color;

@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -17,7 +17,7 @@ varying float mat, recolor;
 varying vec2 texCoord, lmCoord;
 
 varying vec3 normal;
-varying vec3 sunVec, upVec;
+varying vec3 sunVec, upVec, eastVec;
 
 varying vec4 color;
 
@@ -31,7 +31,6 @@ varying vec4 vTexCoord, vTexCoordAM;
 #endif
 
 //Uniforms//
-uniform int blockEntityId;
 uniform int frameCounter;
 uniform int isEyeInWater;
 uniform int worldTime;
@@ -54,10 +53,12 @@ uniform mat4 shadowModelView;
 uniform sampler2D texture;
 
 #ifdef ADVANCED_MATERIALS
+uniform ivec2 atlasSize;
+
 uniform sampler2D specular;
 uniform sampler2D normals;
 
-#ifdef REFLECTION_RAIN
+#if REFLECTION_RAIN > 0
 uniform float wetness;
 
 uniform vec3 cameraPosition;
@@ -80,18 +81,18 @@ float frametime = frameTimeCounter * ANIMATION_SPEED;
 #endif
 
 #ifdef ADVANCED_MATERIALS
-vec2 dcdx = dFdx(texCoord.xy);
-vec2 dcdy = dFdy(texCoord.xy);
+vec2 dcdx = dFdx(texCoord);
+vec2 dcdy = dFdy(texCoord);
 #endif
 
 vec3 lightVec = sunVec * ((timeAngle < 0.5325 || timeAngle > 0.9675) ? 1.0 : -1.0);
 
 //Common Functions//
-float GetLuminance(vec3 color){
+float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
 }
 
-float InterleavedGradientNoise(){
+float InterleavedGradientNoise() {
 	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
 	return fract(n + frameCounter / 8.0);
 }
@@ -107,47 +108,47 @@ float InterleavedGradientNoise(){
 #endif
 
 #ifdef ADVANCED_MATERIALS
+#include "/lib/color/specularColor.glsl"
 #include "/lib/util/encode.glsl"
-#include "/lib/surface/directionalLightmap.glsl"
-#include "/lib/surface/ggx.glsl"
+#include "/lib/reflections/complexFresnel.glsl"
+#include "/lib/reflections/ggx.glsl"
 #include "/lib/surface/materialGbuffers.glsl"
 #include "/lib/surface/parallax.glsl"
 
-#ifdef REFLECTION_RAIN
+#if REFLECTION_RAIN > 0
 #include "/lib/reflections/rainPuddles.glsl"
 #endif
 #endif
 
 //Program//
-void main(){
+void main() {
     vec4 albedo = texture2D(texture, texCoord) * vec4(color.rgb, 1.0);
-
 	vec3 newNormal = normal;
 
 	#ifdef ADVANCED_MATERIALS
 	vec2 newCoord = vTexCoord.st * vTexCoordAM.pq + vTexCoordAM.st;
 	float parallaxFade = clamp((dist - PARALLAX_DISTANCE) / 32.0, 0.0, 1.0);
-	float skipParallax = float(blockEntityId == 63);
+	float skipAdvMat = float(mat > 2.98 && mat < 3.02);
 	
 	#ifdef PARALLAX
-	newCoord = GetParallaxCoord(parallaxFade);
-	albedo = texture2DGradARB(texture, newCoord, dcdx, dcdy) * vec4(color.rgb, 1.0);
+	if(skipAdvMat < 0.5) {
+		newCoord = GetParallaxCoord(parallaxFade);
+		albedo = texture2DGradARB(texture, newCoord, dcdx, dcdy) * vec4(color.rgb, 1.0);
+	}
 	#endif
 
-	float smoothness = 0.0, metalData = 0.0, skymapMod = 0.0;
-	vec3 rawAlbedo = vec3(0.0);
+	float smoothness = 0.0, skyOcclusion = 0.0;
+	vec3 fresnel3 = vec3(0.0);
 	#endif
 
-	if (albedo.a > 0.1){
-		#ifdef TOON_LIGHTMAP
-		vec2 lightmap = clamp(floor(lmCoord * 14.999 * (0.75 + 0.25 * color.a)) / 14, 0.0, 1.0);
-		#else
+	if (albedo.a > 0.001) {
 		vec2 lightmap = clamp(lmCoord, vec2(0.0), vec2(1.0));
-		#endif
 		
 		float foliage  = float(mat > 0.98 && mat < 1.02);
-		float emissive = float(mat > 1.98 && mat < 2.02);
-		float lava     = float(mat > 2.98 && mat < 3.02);
+
+		float emissiveIntensity = 0.25 * EMISSIVE_BRIGHTNESS;
+		float emissive = float(mat > 1.98 && mat < 2.02) * emissiveIntensity;
+		float lava     = float(mat > 2.98 && mat < 3.02) * emissiveIntensity;
 		
 		#ifndef SHADOW_SUBSURFACE
 		foliage = 0.0;
@@ -155,7 +156,7 @@ void main(){
 
 		vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
 		#if AA == 2
-		vec3 viewPos = ToNDC(vec3(TAAJitter(screenPos.xy,-0.5),screenPos.z));
+		vec3 viewPos = ToNDC(vec3(TAAJitter(screenPos.xy, -0.5), screenPos.z));
 		#else
 		vec3 viewPos = ToNDC(screenPos);
 		#endif
@@ -163,9 +164,8 @@ void main(){
 
 		#ifdef ADVANCED_MATERIALS
 		float metalness = 0.0, f0 = 0.0, ao = 1.0;
-		vec3 normalMap = vec3(0.0);
-		GetMaterials(smoothness, metalness, f0, metalData, emissive, ao, normalMap,
-					 newCoord, dcdx, dcdy);
+		vec3 normalMap = vec3(0.0, 0.0, 1.0);
+		GetMaterials(smoothness, metalness, f0, emissive, ao, normalMap, newCoord, dcdx, dcdy);
 		
 		mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
 							  tangent.y, binormal.y, normal.y,
@@ -175,74 +175,62 @@ void main(){
 			newNormal = clamp(normalize(normalMap * tbnMatrix), vec3(-1.0), vec3(1.0));
 		#endif
 
-		#ifdef EMISSIVE_RECOLOR
-		float ec = length(albedo.rgb);
-		if (recolor > 0.5){
-			albedo.rgb = blocklightCol * (ec * 0.3 / BLOCKLIGHT_I) + ec * 0.3;
-		}
-		if (lava > 0.5){
-			ec *= sqrt(ec);
-			albedo.rgb = blocklightCol * (ec / BLOCKLIGHT_I) + ec * 0.025;
-		}
-		#else
-		if (recolor > 0.5) albedo.rgb *=  0.7;
-		#endif
-
     	albedo.rgb = pow(albedo.rgb, vec3(2.2));
+
+		float ec = GetLuminance(albedo.rgb) * 1.7;
+		if (recolor > 0.5) {
+			albedo.rgb *= ec * 0.25 + 0.5;
+		}
 
 		#ifdef WHITE_WORLD
 		albedo.rgb = vec3(0.5);
 		#endif
 
-		float NdotL = clamp(dot(newNormal, lightVec) * 1.01 - 0.01, 0.0, 1.0);
+		float NoL = clamp(dot(newNormal, lightVec) * 1.01 - 0.01, 0.0, 1.0);
 
-		float quarterNdotU = clamp(0.25 * dot(newNormal, upVec) + 0.75, 0.5, 1.0);
-			  quarterNdotU*= quarterNdotU * (foliage > 0.5 ? 1.8 : 1.0);
+		float NoU = clamp(dot(newNormal, upVec), -1.0, 1.0);
+		float NoE = clamp(dot(newNormal, eastVec), -1.0, 1.0);
+		float vanillaDiffuse = (0.25 * NoU + 0.75) + (0.5 - abs(NoE)) * (1.0 - abs(NoU)) * 0.1;
+			  vanillaDiffuse*= vanillaDiffuse * (foliage > 0.5 ? 1.8 : 1.0);
 
 		float parallaxShadow = 1.0;
 		#ifdef ADVANCED_MATERIALS
-		rawAlbedo = albedo.rgb * 0.999 + 0.001;
-		albedo.rgb *= ao;
+		vec3 rawAlbedo = albedo.rgb * 0.999 + 0.001;
+		albedo.rgb *= ao * ao;
 
 		#ifdef REFLECTION_SPECULAR
-		float roughnessSqr = (1.0 - smoothness) * sqrt(1.0 - smoothness);
+		float roughnessSqr = (1.0 - smoothness) * (1.0 - smoothness);
 		albedo.rgb *= (1.0 - metalness * (1.0 - roughnessSqr));
 		#endif
 
 		float doParallax = 0.0;
 		#ifdef SELF_SHADOW
 		#ifdef OVERWORLD
-		doParallax = float(lightmap.y > 0.0 && NdotL > 0.0);
+		doParallax = float(lightmap.y > 0.0 && NoL > 0.0);
 		#endif
 		#ifdef END
-		doParallax = float(NdotL > 0.0);
+		doParallax = float(NoL > 0.0);
 		#endif
 		
-		if (doParallax > 0.5){
+		if (doParallax > 0.5 && skipAdvMat < 0.5) {
 			parallaxShadow = GetParallaxShadow(parallaxFade, newCoord, lightVec, tbnMatrix);
 		}
-		#endif
-
-		#ifdef DIRECTIONAL_LIGHTMAP
-		mat3 lightmapTBN = GetLightmapTBN(viewPos);
-		lightmap.x = DirectionalLightmap(lightmap.x, lmCoord.x, newNormal, lightmapTBN);
-		lightmap.y = DirectionalLightmap(lightmap.y, lmCoord.y, newNormal, lightmapTBN);
 		#endif
 		#endif
 		
 		vec3 shadow = vec3(0.0);
-		GetLighting(albedo.rgb, shadow, viewPos, worldPos, lightmap, color.a, NdotL, quarterNdotU,
+		GetLighting(albedo.rgb, shadow, viewPos, worldPos, lightmap, color.a, NoL, vanillaDiffuse,
 					parallaxShadow, emissive + lava, foliage);
 
 		#ifdef ADVANCED_MATERIALS
 		float puddles = 0.0;
-		#if defined REFLECTION_RAIN && defined OVERWORLD
-		float NdotU = clamp(dot(newNormal, upVec),0.0,1.0);
-
-		#if REFLECTION_RAIN_TYPE == 0
-		puddles = GetPuddles(worldPos) * NdotU * wetness;
+		#if REFLECTION_RAIN > 0 && defined OVERWORLD
+		NoU = clamp(NoU, 0.0, 1.0);
+		
+		#if REFLECTION_RAIN == 1
+		puddles = GetPuddles(worldPos) * NoU * wetness;
 		#else
-		puddles = NdotU * wetness;
+		puddles = NoU * wetness;
 		#endif
 		
 		#ifdef WEATHER_PERBIOME
@@ -257,7 +245,7 @@ void main(){
 
 		albedo.rgb *= 1.0 - (puddles * 0.15);
 
-		if (puddles > 0.001 && rainStrength > 0.001){
+		if (puddles > 0.001 && rainStrength > 0.001) {
 			mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
 							  tangent.y, binormal.y, normal.y,
 							  tangent.z, binormal.z, normal.z);
@@ -267,28 +255,26 @@ void main(){
 		}
 		#endif
 
-		skymapMod = lightmap.y * lightmap.y * (3.0 - 2.0 * lightmap.y);
+		skyOcclusion = lightmap.y * lightmap.y * (3.0 - 2.0 * lightmap.y);
+		
+		vec3 baseReflectance = mix(vec3(f0), rawAlbedo, metalness);
+		float fresnel = pow(clamp(1.0 + dot(newNormal, normalize(viewPos.xyz)), 0.0, 1.0), 5.0);
+
+		fresnel3 = mix(baseReflectance, vec3(1.0), fresnel);
+		
+		float so = pow(max(ao * 2.0 - 1.0, 0.0), 2.0);
+		fresnel3 *= so;
+		albedo.rgb = albedo.rgb * (1.0 - fresnel3 * smoothness * smoothness * (1.0 - metalness));
 
 		#if defined OVERWORLD || defined END
-		#ifdef OVERWORLD
-		vec3 lightME = mix(lightMorning, lightEvening, mefade);
-		vec3 lightDayTint = lightDay * lightME * LIGHT_DI;
-		vec3 lightDaySpec = mix(lightME, sqrt(lightDayTint), timeBrightness);
-		vec3 specularColor = mix(sqrt(lightNight),
-									lightDaySpec,
-									sunVisibility);
-		specularColor *= specularColor;
-		#endif
-		#ifdef END
-		vec3 specularColor = endCol;
-		#endif
+		vec3 specularColor = GetSpecularColor(lightmap.y, metalness, baseReflectance);
 		
-		albedo.rgb += GetSpecularHighlight(smoothness, metalness, f0, specularColor, rawAlbedo,
-							 			   shadow, normal, viewPos);
+		albedo.rgb += GetSpecularHighlight(newNormal, viewPos, lightVec, smoothness, baseReflectance,
+										   specularColor, shadow * so * vanillaDiffuse);
 		#endif
 		
 		#if defined REFLECTION_SPECULAR && defined REFLECTION_ROUGH
-		if (normalMap.x > -0.999 && normalMap.y > -0.999){
+		if (normalMap.x > -0.999 && normalMap.y > -0.999) {
 			normalMap = mix(vec3(0.0, 0.0, 1.0), normalMap, smoothness);
 			newNormal = mix(normalMap * tbnMatrix, newNormal, 1.0 - pow(1.0 - puddles, 4.0));
 			newNormal = clamp(normalize(newNormal), vec3(-1.0), vec3(1.0));
@@ -302,9 +288,9 @@ void main(){
 
 	#if defined ADVANCED_MATERIALS && defined REFLECTION_SPECULAR
 	/* DRAWBUFFERS:0367 */
-	gl_FragData[1] = vec4(smoothness, metalData, skymapMod, 1.0);
+	gl_FragData[1] = vec4(smoothness, 1.0, skyOcclusion, 1.0);
 	gl_FragData[2] = vec4(EncodeNormal(newNormal), float(gl_FragCoord.z < 1.0), 1.0);
-	gl_FragData[3] = vec4(rawAlbedo, 1.0);
+	gl_FragData[3] = vec4(fresnel3, 1.0);
 	#endif
 }
 
@@ -319,7 +305,7 @@ varying float mat, recolor;
 varying vec2 texCoord, lmCoord;
 
 varying vec3 normal;
-varying vec3 sunVec, upVec;
+varying vec3 sunVec, upVec, eastVec;
 
 varying vec4 color;
 
@@ -375,11 +361,11 @@ float frametime = frameTimeCounter * ANIMATION_SPEED;
 #endif
 
 //Program//
-void main(){
+void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     
 	lmCoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
-	lmCoord = clamp((lmCoord - 0.03125) * 1.06667, 0.0, 1.0);
+	lmCoord = clamp((lmCoord - 0.03125) * 1.06667, vec2(0.0), vec2(1.0));
 
 	normal = normalize(gl_NormalMatrix * gl_Normal);
 
@@ -408,26 +394,30 @@ void main(){
 	
 	mat = 0.0; recolor = 0.0;
 
-	if (mc_Entity.x ==  31 || mc_Entity.x ==   6 || mc_Entity.x ==  59 || mc_Entity.x == 175 ||
-	   mc_Entity.x == 176 || mc_Entity.x ==  18 || mc_Entity.x == 106 || mc_Entity.x == 111 ||
-	   mc_Entity.x ==  83 || mc_Entity.x == 104)
+	if (mc_Entity.x == 10100 || mc_Entity.x == 10101 || mc_Entity.x == 10102 || mc_Entity.x == 10103 ||
+	    mc_Entity.x == 10104 || mc_Entity.x == 10105 || mc_Entity.x == 10106 || mc_Entity.x == 10107 ||
+	    mc_Entity.x == 10108 || mc_Entity.x == 10109)
 		mat = 1.0;
-	if (mc_Entity.x ==  55 || mc_Entity.x == 213 || mc_Entity.x ==  76 || mc_Entity.x ==  50 ||
-	   mc_Entity.x ==  91 || mc_Entity.x ==  89 || mc_Entity.x ==  51)
+	if (mc_Entity.x == 10200 || mc_Entity.x == 10207 || mc_Entity.x == 10210 || mc_Entity.x == 10214 ||
+		mc_Entity.x == 10215 || mc_Entity.x == 10216 || mc_Entity.x == 10226 || mc_Entity.x == 10231 ||
+		mc_Entity.x == 10249 || mc_Entity.x == 10250 || mc_Entity.x == 10251 || mc_Entity.x == 10252 ||
+		mc_Entity.x == 10253)
 		mat = 2.0;
-	if (mc_Entity.x ==  10)
+	if (mc_Entity.x == 10248)
 		mat = 3.0;
 
-	if (mc_Entity.x == 213 || mc_Entity.x ==  89 || mc_Entity.x == 138)
+	if (mc_Entity.x == 10216 || mc_Entity.x == 10226 || mc_Entity.x == 10231 || mc_Entity.x == 10250 ||
+		mc_Entity.x == 10251 || mc_Entity.x == 10253)
 		recolor = 1.0;
 
-	if (mc_Entity.x ==  91 || mc_Entity.x ==  89 || mc_Entity.x ==  10 || mc_Entity.x ==  51)
+	if (mc_Entity.x == 10215 || mc_Entity.x == 10231 || mc_Entity.x == 10248 || mc_Entity.x == 10249 ||
+		mc_Entity.x == 10251)
 		lmCoord.x = 1.0;
-	if (mc_Entity.x ==  62)
+	if (mc_Entity.x == 10245)
 		lmCoord.x -= 0.0667;
 
-	if (mc_Entity.x == 300)
-		color.a = 1;
+	if (mc_Entity.x == 10400)
+		color.a = 1.0;
 
 	const vec2 sunRotationData = vec2(cos(sunPathRotation * 0.01745329251994), -sin(sunPathRotation * 0.01745329251994));
 	float ang = fract(timeAngle - 0.25);
@@ -435,11 +425,12 @@ void main(){
 	sunVec = normalize((gbufferModelView * vec4(vec3(-sin(ang), cos(ang) * sunRotationData) * 2000.0, 1.0)).xyz);
 
 	upVec = normalize(gbufferModelView[1].xyz);
+	eastVec = normalize(gbufferModelView[0].xyz);
 
 	vec4 position = gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex;
 	
 	float istopv = gl_MultiTexCoord0.t < mc_midTexCoord.t ? 1.0 : 0.0;
-	position.xyz += WavingBlocks(position.xyz, istopv);
+	position.xyz = WavingBlocks(position.xyz, istopv, lmCoord.y);
 
     #ifdef WORLD_CURVATURE
 	position.y -= WorldCurvature(position.xz);

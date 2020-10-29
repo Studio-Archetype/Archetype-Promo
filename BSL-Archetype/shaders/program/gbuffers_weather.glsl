@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -35,7 +35,7 @@ float eBS = eyeBrightnessSmooth.y / 240.0;
 float sunVisibility = clamp(dot(sunVec, upVec) + 0.05, 0.0, 0.1) * 10.0;
 
 //Common Functions//
-void Defog(inout vec3 albedo){
+void Defog(inout vec3 albedo) {
 	float z = texture2D(depthtex0,gl_FragCoord.xy/vec2(viewWidth,viewHeight)).r;
 	if (z == 1.0) return;
 
@@ -43,9 +43,10 @@ void Defog(inout vec3 albedo){
     vec4 viewPos = gbufferProjectionInverse * (screenPos * 2.0 - 1.0);
     viewPos /= viewPos.w;
 
-    float fog = length(viewPos) / (50.0 * FOG_DISTANCE);
-	fog *= (1.5 * rainStrength + 1.0) / (sunVisibility * 0.5 + 1.5) * eBS;
-	fog = 1.0 - exp(-2.0 * fog * mix(sqrt(fog), 1.0, rainStrength));
+    float fog = length(viewPos) * FOG_DENSITY / 256.0;
+	float clearDay = sunVisibility * (1.0 - rainStrength);
+	fog *= (0.5 * rainStrength + 1.0) / (3.0 * clearDay + 1.0);
+	fog = 1.0 - exp(-2.0 * pow(fog, 0.25 * clearDay + 1.25) * eBS);
     albedo.rgb /= 1.0 - fog;
 }
 
@@ -54,20 +55,24 @@ void Defog(inout vec3 albedo){
 #include "/lib/color/blocklightColor.glsl"
 
 //Program//
-void main(){
+void main() {
+	#if defined NETHER || defined END
+	discard;
+	#endif
+
     vec4 albedo = vec4(0.0);
 	
 	#ifdef WEATHER
-	albedo.a = texture2D(texture, texCoord.xy).a;
+	albedo.a = texture2D(texture, texCoord).a;
 	
-	if (albedo.a > 0.001){
-		albedo.rgb = texture2D(texture, texCoord.xy).rgb;
+	if (albedo.a > 0.001) {
+		albedo.rgb = texture2D(texture, texCoord).rgb;
 
-		albedo.a *= 0.2 * rainStrength * length(albedo.rgb / 3.0) * float(albedo.a > 0.1);
+		albedo.a *= 0.25 * rainStrength * length(albedo.rgb / 3.0) * float(albedo.a > 0.1);
 		albedo.rgb = sqrt(albedo.rgb);
 		albedo.rgb *= (ambientCol + lmCoord.x * lmCoord.x * blocklightCol) * WEATHER_OPACITY;
 		
-		#ifdef FOG
+		#if defined FOG && MC_VERSION <= 11500
 		if (gl_FragCoord.z > 0.991) Defog(albedo.rgb);
 		#endif
 	}
@@ -93,7 +98,7 @@ uniform float timeAngle;
 uniform mat4 gbufferModelView;
 
 //Program//
-void main(){
+void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 
 	lmCoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;

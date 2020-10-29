@@ -1,17 +1,17 @@
-vec3 nvec3(vec4 pos){
+vec3 nvec3(vec4 pos) {
     return pos.xyz/pos.w;
 }
 
-vec4 nvec4(vec3 pos){
+vec4 nvec4(vec3 pos) {
     return vec4(pos.xyz, 1.0);
 }
 
-float cdist(vec2 coord){
-	return max(abs(coord.s-0.5),abs(coord.t-0.5))*1.85;
+float cdist(vec2 coord) {
+	return max(abs(coord.x - 0.5), abs(coord.y - 0.5)) * 1.85;
 }
 
 vec4 Raytrace(sampler2D depthtex, vec3 viewPos, vec3 normal, float dither,
-			  float maxf, float stp, float ref, float inc){
+			  float maxf, float stp, float ref, float inc) {
 	vec3 pos = vec3(0.0);
 	float dist = 0.0;
 	
@@ -27,7 +27,7 @@ vec4 Raytrace(sampler2D depthtex, vec3 viewPos, vec3 normal, float dither,
 
     int sr = 0;
 
-    for(int i = 0; i < 30; i++){
+    for(int i = 0; i < 30; i++) {
         pos = nvec3(gbufferProjection * nvec4(viewPos)) * 0.5 + 0.5;
 		if (pos.x < -0.05 || pos.x > 1.05 || pos.y < -0.05 || pos.y > 1.05) break;
 
@@ -36,29 +36,16 @@ vec4 Raytrace(sampler2D depthtex, vec3 viewPos, vec3 normal, float dither,
 		dist = length(start - rfragpos);
 
         float err = length(viewPos - rfragpos);
-		if (err < pow(length(vector) * pow(length(tvector), 0.11), 1.1) * 1.2){
-                sr++;
-                if (sr >= maxf) break;
-				tvector -= vector;
-                vector *= ref;
+		if (err < pow(length(vector) * pow(length(tvector), 0.11), 1.1) * 1.2) {
+			sr++;
+			if (sr >= maxf) break;
+			tvector -= vector;
+			vector *= ref;
 		}
         vector *= inc;
         tvector += vector;
 		viewPos = start + tvector * (dither * 0.05 + 0.975);
     }
-
-	#ifdef REFLECTION_PREVIOUS
-	//Previous frame reprojection from Chocapic13
-	vec4 viewPosPrev = gbufferProjectionInverse * vec4(pos * 2.0 - 1.0, 1.0);
-	viewPosPrev /= viewPosPrev.w;
-	
-	viewPosPrev = gbufferModelViewInverse * viewPosPrev;
-
-	vec4 previousPosition = viewPosPrev + vec4(cameraPosition - previousCameraPosition, 0.0);
-	previousPosition = gbufferPreviousModelView * previousPosition;
-	previousPosition = gbufferPreviousProjection * previousPosition;
-	pos.xy = previousPosition.xy / previousPosition.w * 0.5 + 0.5;
-	#endif
 
 	return vec4(pos, dist);
 }

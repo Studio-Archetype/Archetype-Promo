@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -15,7 +15,7 @@ https://bitslablab.com
 varying vec2 texCoord, lmCoord;
 
 varying vec3 normal;
-varying vec3 sunVec, upVec;
+varying vec3 sunVec, upVec, eastVec;
 
 varying vec4 color;
 
@@ -53,11 +53,11 @@ float frametime = frameTimeCounter * ANIMATION_SPEED;
 vec3 lightVec = sunVec * ((timeAngle < 0.5325 || timeAngle > 0.9675) ? 1.0 : -1.0);
 
 //Common Functions//
-float GetLuminance(vec3 color){
+float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
 }
 
-float InterleavedGradientNoise(){
+float InterleavedGradientNoise() {
 	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
 	return fract(n + frameCounter / 8.0);
 }
@@ -73,19 +73,15 @@ float InterleavedGradientNoise(){
 #endif
 
 //Program//
-void main(){
+void main() {
     vec4 albedo = color;
 
-	if (albedo.a > 0.1){
-		#ifdef TOON_LIGHTMAP
-		vec2 lightmap = clamp(floor(lmCoord * 14.999 * (0.75 + 0.25 * color.a)) / 14, 0.0, 1.0);
-		#else
+	if (albedo.a > 0.001) {
 		vec2 lightmap = clamp(lmCoord, vec2(0.0), vec2(1.0));
-		#endif
 
 		vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
 		#if AA == 2
-		vec3 viewPos = ToNDC(vec3(TAAJitter(screenPos.xy,-0.5),screenPos.z));
+		vec3 viewPos = ToNDC(vec3(TAAJitter(screenPos.xy, -0.5), screenPos.z));
 		#else
 		vec3 viewPos = ToNDC(screenPos);
 		#endif
@@ -98,13 +94,15 @@ void main(){
 		if (albedo.a > 0.9) albedo.rgb = vec3(0.5);
 		#endif
 
-		float NdotL = clamp(dot(normal, lightVec) * 1.01 - 0.01, 0.0, 1.0);
+		float NoL = clamp(dot(normal, lightVec) * 1.01 - 0.01, 0.0, 1.0);
 
-		float quarterNdotU = clamp(0.25 * dot(normal, upVec) + 0.75, 0.5, 1.0);
-			  quarterNdotU*= quarterNdotU;
+		float NoU = clamp(dot(normal, upVec), -1.0, 1.0);
+		float NoE = clamp(dot(normal, eastVec), -1.0, 1.0);
+		float vanillaDiffuse = (0.25 * NoU + 0.75) + (0.5 - abs(NoE)) * (1.0 - abs(NoU)) * 0.1;
+			  vanillaDiffuse*= vanillaDiffuse;
 		
 		vec3 shadow = vec3(0.0);
-		GetLighting(albedo.rgb, shadow, viewPos, worldPos, lightmap, 1.0, NdotL, quarterNdotU,
+		GetLighting(albedo.rgb, shadow, viewPos, worldPos, lightmap, 1.0, NoL, vanillaDiffuse,
 				    1.0, 0.0, 0.0);
 	}
 
@@ -128,7 +126,7 @@ void main(){
 varying vec2 texCoord, lmCoord;
 
 varying vec3 normal;
-varying vec3 sunVec, upVec;
+varying vec3 sunVec, upVec, eastVec;
 
 varying vec4 color;
 
@@ -169,11 +167,11 @@ float frametime = frameTimeCounter * ANIMATION_SPEED;
 #endif
 
 //Program//
-void main(){
+void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     
 	lmCoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
-	lmCoord = clamp((lmCoord - 0.03125) * 1.06667, 0.0, 1.0);
+	lmCoord = clamp((lmCoord - 0.03125) * 1.06667, vec2(0.0), vec2(1.0));
 
 	normal = normalize(gl_NormalMatrix * gl_Normal);
     
@@ -185,6 +183,7 @@ void main(){
 	sunVec = normalize((gbufferModelView * vec4(vec3(-sin(ang), cos(ang) * sunRotationData) * 2000.0, 1.0)).xyz);
 
 	upVec = normalize(gbufferModelView[1].xyz);
+	eastVec = normalize(gbufferModelView[0].xyz);
 
     #ifdef WORLD_CURVATURE
 	vec4 position = gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex;

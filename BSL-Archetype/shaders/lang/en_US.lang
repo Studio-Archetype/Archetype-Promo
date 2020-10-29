@@ -5,7 +5,7 @@ profile.LOW=Low
 profile.MEDIUM=Medium
 profile.HIGH=High
 profile.ULTRA=Ultra
-profile.comment=Low : low shadows, no extra effects. Medium : medium shadows, no extra effects. High : medium shadows, AO and light shafts. Ultra : high shadows, AO, light shafts, and motion blur.
+profile.comment=Low : low shadows, no extra effects. Medium : medium shadows, no extra effects. High : medium colored shadows, AO and light shafts. Ultra : high colored shadows, AO, and light shafts.
 
 #Screens
 screen.VISUAL=Visual
@@ -35,14 +35,19 @@ screen.SKY_COLOR=Sky Color
 screen.WATER_COLOR=Water Color
 screen.WEATHER_COLOR=Weather Color
 screen.WEATHER_R=Rain (Normal)
-screen.WEATHER_D=Snowfall
-screen.WEATHER_B=Desert Sandstorm
-screen.WEATHER_C=Mesa Sandstorm
+screen.WEATHER_C=Snowfall
+screen.WEATHER_D=Desert Sandstorm
+screen.WEATHER_B=Mesa Sandstorm
 screen.WEATHER_S=Swamp Rain
 screen.WEATHER_M=Mushroom Island Rain
 screen.WEATHER_V=Savanna Cloudy
 screen.DIMENSION_COLOR=Dimension Color
 screen.NETHER_COLOR=Nether Color
+screen.NETHER_N=Nether Wastes
+screen.NETHER_V=Soul Sand Valley
+screen.NETHER_C=Crimson Forest
+screen.NETHER_W=Warped Forest
+screen.NETHER_B=Basalt Deltas
 screen.END_COLOR=End Color
 
 screen.SKY=Sky
@@ -55,7 +60,7 @@ screen.TERRAIN=Waving Blocks
 screen.WORLD=World
 
 #Settings
-option.ABOUT=BSL v7.1.05
+option.ABOUT=BSL v7.2.01
 option.ABOUT.comment=by Capt Tatsu. bitslablab.com
 value.ABOUT.0=by Capt Tatsu
 
@@ -91,21 +96,15 @@ option.REFLECTION_TRANSLUCENT.comment=Allows reflection to be rendered on transl
 option.ADVANCED_MATERIALS=Advanced Materials
 option.ADVANCED_MATERIALS.comment=Enables the use of specular and normal mapping which allows for more detail on various things.  §e[*]§rThis option requires a resource pack which contains specular and/or normal maps, disable this if you don't use one.
 
-option.BLACK_OUTLINE=Black Outline
-option.BLACK_OUTLINE.comment=Enables black outline.
-
 option.PROMO_OUTLINE=Promo Outline
 option.PROMO_OUTLINE.comment=Enables Minecraft's promo art style's outline. §e[*]§rThis effect is less effective on higher resolution due to the lack of scaling.
-
-option.TOON_LIGHTMAP=Toon Lightmap
-option.TOON_LIGHTMAP.comment=Reduces the quality of vanilla lighting for cel shading. §e[*]§rThis option is notorious for making your game "look bad", only enable this when you need it.
 
 option.WHITE_WORLD=White World
 option.WHITE_WORLD.comment=Replaces textures with flat white color.
 
 option.MATERIAL_FORMAT=Material Format
 option.MATERIAL_FORMAT.comment=Determines the specular and normal map format used by the resourcepack. §e[*]§rTexture artists usually tell which format is used in their resourcepack, using the wrong format may give weird results.
-value.MATERIAL_FORMAT.0=labPBR 1.2
+value.MATERIAL_FORMAT.0=labPBR 1.3
 value.MATERIAL_FORMAT.1=Old PBR + Emissive
 
 option.REFLECTION_SPECULAR=Specular Reflection
@@ -113,17 +112,18 @@ option.REFLECTION_SPECULAR.comment=Enables reflection on smooth or metallic surf
 
 option.REFLECTION_RAIN=Rain Reflection
 option.REFLECTION_RAIN.comment=Allows surfaces to be wet while raining.  §e[*]§rRequires specular reflection.
-
-option.REFLECTION_RAIN_TYPE=Rain Reflection Type
-option.REFLECTION_RAIN_TYPE.comment=Determines how the rain reflection is applied. Currently unavailable.
-value.REFLECTION_RAIN_TYPE.0=Puddles
-value.REFLECTION_RAIN_TYPE.1=Full
+value.REFLECTION_RAIN.0=OFF
+value.REFLECTION_RAIN.1=Puddles
+value.REFLECTION_RAIN.2=Full
 
 option.REFLECTION_ROUGH=Rough Reflection
 option.REFLECTION_ROUGH.comment=Allows surfaces with lower smoothness to render blurry reflections. §c[-]§rMay contain minor artifacts.
 
 option.REFLECTION_PREVIOUS=Previous Frame Reflection
 option.REFLECTION_PREVIOUS.comment=Allows translucents to be reflected by using previous frame information. §c[-]§rMay cause missing reflection on screenshot (caused by screenshot size setting). §c[-]§rIncompatible with some GPUs.
+
+option.ALBEDO_METAL=Albedo Tinted Hardcoded Metal
+option.ALBEDO_METAL.comment=Applies base texture as tint on hardcoded metallic surfaces. §e[*]§rWorks on labPBR material format only.
 
 option.PARALLAX=Parallax Occlusion Mapping
 option.PARALLAX.comment=Adds displacement on a surface using height map.
@@ -146,19 +146,18 @@ option.PARALLAX_DISTANCE.comment=Adjusts how far parallax occlusion mapping and 
 option.DIRECTIONAL_LIGHTMAP=Directional Lightmap
 option.DIRECTIONAL_LIGHTMAP.comment=Adds normal mapping to vanilla lighting. §c[-]§rLightmap may glitch with this effect enabled.
 
-option.DIRECTIONAL_LIGHTMAP_STRENGTH=Directional Lightmap Strength
+option.DIRECTIONAL_LIGHTMAP_STRENGTH=Dir. Lightmap Strength
 option.DIRECTIONAL_LIGHTMAP_STRENGTH.comment=Adjusts the intensity of Directional Lightmap.
+value.DIRECTIONAL_LIGHTMAP_STRENGTH.2.0=Very Low
+value.DIRECTIONAL_LIGHTMAP_STRENGTH.1.4=Low
+value.DIRECTIONAL_LIGHTMAP_STRENGTH.1.0=Medium
+value.DIRECTIONAL_LIGHTMAP_STRENGTH.0.7=High
+value.DIRECTIONAL_LIGHTMAP_STRENGTH.0.5=Very High
 
 option.DOF=Depth of Field
 options.DOF.comment=Enables camera focus effect.
 option.DOF_STRENGTH=DoF Strength
 option.DOF_STRENGTH.comment=Adjusts the focus strength, higher value blurs quicker.
-
-option.MOTION_BLUR=Motion Blur
-option.MOTION_BLUR.comment=Enables camera motion based blurring.
-
-option.MOTION_BLUR_STRENGTH=Motion Blur Strength
-option.MOTION_BLUR_STRENGTH.comment=Adjusts motion blur intensity.
 
 option.BLOOM=Bloom
 option.BLOOM.comment=Allows bright areas to glow.
@@ -247,13 +246,13 @@ option.CG_TB=Tint - Blue Value
 option.CG_TI=Tint Strength Value
 option.CG_TM=Tint Mix Value
 
-option.shadowMapResolution=Shadowmap Resolution
+option.shadowMapResolution=Shadowmap Quality
 option.shadowMapResolution.comment=Adjusts shadowmap size. §e[*]§rHigher resolution gives sharper shadows, but reduces performance.
-value.shadowMapResolution.1024=Low
-value.shadowMapResolution.2048=Medium
-value.shadowMapResolution.3072=High
-value.shadowMapResolution.4096=Very High
-value.shadowMapResolution.8192=Ultra High
+value.shadowMapResolution.1024=Low (1024)
+value.shadowMapResolution.2048=Medium (2048)
+value.shadowMapResolution.3072=High (3072)
+value.shadowMapResolution.4096=Very High (4096)
+value.shadowMapResolution.8192=Ultra High (8192)
 
 option.shadowDistance=Shadow Distance
 option.shadowDIstance.comment=Adsusts shadow distance.
@@ -280,10 +279,10 @@ option.LIGHT_DG=Green
 option.LIGHT_DB=Blue
 option.LIGHT_DI=Intensity
 
-option.LIGHT_AR=Red
-option.LIGHT_AG=Green
-option.LIGHT_AB=Blue
-option.LIGHT_AI=Intensity
+option.LIGHT_ER=Red
+option.LIGHT_EG=Green
+option.LIGHT_EB=Blue
+option.LIGHT_EI=Intensity
 
 option.LIGHT_NR=Red
 option.LIGHT_NG=Green
@@ -357,10 +356,30 @@ option.WEATHER_MG=Green
 option.WEATHER_MB=Blue
 option.WEATHER_MI=Intensity
 
-option.NETHER_R=Red
-option.NETHER_G=Green
-option.NETHER_B=Blue
-option.NETHER_I=Intensity
+option.NETHER_NR=Red
+option.NETHER_NG=Green
+option.NETHER_NB=Blue
+option.NETHER_NI=Intensity
+
+option.NETHER_VR=Red
+option.NETHER_VG=Green
+option.NETHER_VB=Blue
+option.NETHER_VI=Intensity
+
+option.NETHER_CR=Red
+option.NETHER_CG=Green
+option.NETHER_CB=Blue
+option.NETHER_CI=Intensity
+
+option.NETHER_WR=Red
+option.NETHER_WG=Green
+option.NETHER_WB=Blue
+option.NETHER_WI=Intensity
+
+option.NETHER_BR=Red
+option.NETHER_BG=Green
+option.NETHER_BB=Blue
+option.NETHER_BI=Intensity
 
 option.END_R=Red
 option.END_G=Green
@@ -370,11 +389,15 @@ option.END_I=Intensity
 option.SKY_VANILLA=Vanilla Sky
 option.SKY_VANILLA.comment=Use vanilla sky color.
 
-option.WATER_VANILLA=Vanilla Water
-option.WATER_VANILLA.comment=Use vanilla water texture.
+option.WATER_MODE=Water Mode
+option.WATER_MODE.comment=Determine whether vanilla water texture should be used. Default : shader's flat water color, no texture. Vanilla : vanilla texture. Tinted Vanilla : vanilla texture with shader's water color. Flat Vanilla : vanilla's flat water color.
+value.WATER_MODE.0=Default
+value.WATER_MODE.1=Vanilla
+value.WATER_MODE.2=Tinted Vanilla
+value.WATER_MODE.3=Flat Vanilla
 
-option.WEATHER_PERBIOME=Per Biome Weather
-option.WEATHER_PERBIOME.comment=Use varied weather color for different biomes. §c[-]§rWorks in singleplayer only.
+option.NETHER_VANILLA=Vanilla Nether
+option.NETHER_VANILLA.comment=Use vanilla nether color.
 
 option.CLOUDS=Clouds
 option.CLOUDS.comment=Enables clouds. §a[+]§rThis effect benefits from TAA.
@@ -382,11 +405,14 @@ option.CLOUDS.comment=Enables clouds. §a[+]§rThis effect benefits from TAA.
 option.STARS=Stars
 option.STARS.comment=Enables stars.
 
-option.ROUND_SUN_MOON=Round Sun & Moon
-option.ROUND_SUN_MOON.comment=Enables shader based sun & moon. §e[*]§rDisable vanilla sun & moon in Video Settings > Details > Sun & Moon
+option.AURORA=Aurora
+option.AURORA.comment=Enables aurora. §a[+]§rThis effect benefits from TAA.
 
-option.SKY_DESATURATION=Sky Desaturation
-option.SKY_DESATURATION.comment=Reduces saturation while adding some tint to the skybox at night
+option.SKY_GROUND=Sky Ground
+option.SKY_GROUND.comment=Darkens the bottom part of the sky. §e[*]§rThis option is affected by fog density slider.
+value.SKY_GROUND.0=§cOFF
+value.SKY_GROUND.1=Reflections Only
+value.SKY_GROUND.2=Full
 
 option.HORIZON_DISTANCE=Horizon Distance
 option.HORIZON_DISTANCE.comment=Adjusts sky gradient. Nearer horizon gives slightly brighter sky, further horizon gives slightly darker sky.
@@ -472,9 +498,7 @@ option.WAVING_LILYPAD=Lilypad
 option.WAVING_FIRE=Fire
 option.WAVING_WATER=Water
 option.WAVING_LAVA=Lava
-
-option.EMISSIVE_RECOLOR=Emissive Recolor
-option.EMISSIVE_RECOLOR.comment=Tints certain emissive blocks with blocklight color.
+option.WAVING_LANTERN=Lantern
 
 option.EMISSIVE_BRIGHTNESS=Emissive Brightness
 option.EMISSIVE_BRIGHTNESS.comment=Adjusts the brightness of emissive blocks.
@@ -488,8 +512,8 @@ option.WEATHER_OPACITY.comment=Adjusts weather opacity.
 option.FOG=Fog
 option.FOG.comment=Enables fog.
 
-option.FOG_DISTANCE=Fog Distance
-option.FOG_DISTANCE.comment=Adjusts fog distance. §e[*]§rThis option is ignored in the nether.
+option.FOG_DENSITY=Fog Density
+option.FOG_DENSITY.comment=Adjusts fog density. §e[*]§rThis option is ignored in the nether.
 
 option.WORLD_CURVATURE=World Curvature
 option.WORLD_CURVATURE.comment=Enables world curvature. §e[*]§rWorks in overworld only. §e[*]§rMissing chunks are handled by Minecraft itself which I can't fix.
@@ -503,5 +527,5 @@ option.WORLD_TIME_ANIMATION.comment=Use ingame time for moving objects. §e[*]§
 option.ANIMATION_SPEED=Animation Speed
 option.ANIMATION_SPEED.comment=Adjusts animation speed.
 
-option.SOFT_PARTICLES=Soft Particles
-option.SOFT_PARTICLES.comment=Allows particle to blend smoothly with its surroundings.
+option.WEATHER_PERBIOME=Per Biome Weather
+option.WEATHER_PERBIOME.comment=Use varied weather color for different biomes. §c[-]§rMay not work under unknown conditions.

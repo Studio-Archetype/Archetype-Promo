@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -39,10 +39,10 @@ float sunVisibility = clamp(dot(sunVec, upVec) + 0.05, 0.0, 0.1) * 10.0;
 #include "/lib/color/dimensionColor.glsl"
 
 //Program//
-void main(){
-    vec4 color = texture2D(colortex0,texCoord.xy);
+void main() {
+    vec4 color = texture2D(colortex0, texCoord.xy);
 	
-	vec3 vl = texture2DLod(colortex1,texCoord.xy,1.5).rgb;
+	vec3 vl = texture2DLod(colortex1, texCoord.xy, 1.5).rgb;
 	vl *= vl;
 
 	#ifdef OVERWORLD
@@ -50,7 +50,7 @@ void main(){
 	#endif
 
 	#ifdef END
-    vl *= endCol * 0.025;
+    vl *= endCol.rgb * 0.025;
 	#endif
 
     vl *= LIGHT_SHAFT_STRENGTH * (1.0 - rainStrength * eBS * 0.875) * shadowFade *
@@ -79,7 +79,7 @@ uniform float timeAngle;
 uniform mat4 gbufferModelView;
 
 //Program//
-void main(){
+void main() {
 	texCoord = gl_MultiTexCoord0.xy;
 	
 	gl_Position = ftransform();

@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -10,6 +10,8 @@ https://bitslablab.com
 #ifdef FSH
 
 //Varyings//
+varying float star;
+
 varying vec3 upVec, sunVec;
 
 //Uniforms//
@@ -48,33 +50,25 @@ float moonVisibility = clamp(dot(-sunVec, upVec) + 0.05, 0.0, 0.1) * 10.0;
 vec3 lightVec = sunVec * (1.0 - 2.0 * float(timeAngle > 0.5325 && timeAngle < 0.9675));
 
 //Common Functions//
-float GetLuminance(vec3 color){
+float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
 }
 
-void RoundSunMoon(inout vec3 color, vec3 viewPos, vec3 sunColor, vec3 moonColor){
-	float cosS = dot(normalize(viewPos),sunVec);
-	float isMoon = float(cosS < 0.0);
-	float sun = pow(abs(cosS), 800.0 * isMoon + 800.0) * (1.0 - sqrt(rainStrength));
-
-	vec3 sunMoonCol = mix(moonColor * moonVisibility, sunColor * sunVisibility, float(cosS > 0.0));
-	color += sun * sunMoonCol * 32.0;
-}
-
-void SunGlare(inout vec3 color, vec3 viewPos, vec3 lightCol){
-	float cosS = dot(normalize(viewPos), lightVec);
+void SunGlare(inout vec3 color, vec3 viewPos, vec3 lightCol) {
+	float VoL = dot(normalize(viewPos), lightVec);
 	float visfactor = 0.05 * (1.0 - 0.8 * timeBrightness) * (3.0 * rainStrength + 1.0);
 	float invvisfactor = 1.0 - visfactor;
 
-	float visibility = clamp(cosS * 0.5 + 0.5, 0.0, 1.0);
+	float visibility = clamp(VoL * 0.5 + 0.5, 0.0, 1.0);
     visibility = visfactor / (1.0 - invvisfactor * visibility) - visfactor;
 	visibility = clamp(visibility * 1.015 / invvisfactor - 0.015, 0.0, 1.0);
 	visibility = mix(1.0, visibility, 0.25 * eBS + 0.75) * (1.0 - rainStrength * eBS * 0.875);
+	visibility *= shadowFade * LIGHT_SHAFT_STRENGTH;
 
 	#ifdef LIGHT_SHAFT
-	if (isEyeInWater == 1) color += 0.225 * lightCol * visibility * shadowFade;
+	if (isEyeInWater == 1) color += 0.225 * lightCol * visibility;
 	#else
-	color += 0.225 * lightCol * visibility * shadowFade;
+	color += 0.225 * lightCol * visibility;
 	#endif
 }
 
@@ -86,29 +80,26 @@ void SunGlare(inout vec3 color, vec3 viewPos, vec3 lightCol){
 #include "/lib/atmospherics/sky.glsl"
 
 //Program//
-void main(){
+void main() {
 	#ifdef OVERWORLD
 	vec4 screenPos = vec4(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z, 1.0);
 	vec4 viewPos = gbufferProjectionInverse * (screenPos * 2.0 - 1.0);
 	viewPos /= viewPos.w;
 	
-	vec3 albedo = GetSkyColor(viewPos.xyz,lightCol);
-	
-	#ifdef ROUND_SUN_MOON
-	vec3 lightMA = mix(lightMorning, lightEvening, mefade);
-    vec3 sunColor = mix(lightMA, sqrt(lightDay * lightMA * LIGHT_DI), timeBrightness);
-    vec3 moonColor = sqrt(lightNight);
-
-	RoundSunMoon(albedo, viewPos.xyz, sunColor, moonColor);
-	#endif
+	vec3 albedo = GetSkyColor(viewPos.xyz, lightCol, false);
 
 	#ifdef STARS
 	if (moonVisibility > 0.0) DrawStars(albedo.rgb, viewPos.xyz);
 	#endif
+
+	float dither = Bayer64(gl_FragCoord.xy);
+
+	#ifdef AURORA
+	albedo.rgb += DrawAurora(viewPos.xyz, dither, 20);
+	#endif
 	
 	#ifdef CLOUDS
-	float dither = Bayer64(gl_FragCoord.xy);
-	vec4 cloud = DrawCloud(viewPos.xyz, albedo);
+	vec4 cloud = DrawCloud(viewPos.xyz, dither, lightCol, ambientCol);
 	albedo.rgb = mix(albedo.rgb, cloud.rgb, cloud.a);
 	#endif
 
@@ -122,7 +113,7 @@ void main(){
 	#endif
 	
     /* DRAWBUFFERS:0 */
-	gl_FragData[0] = vec4(albedo, 1.0);
+	gl_FragData[0] = vec4(albedo, 1.0 - star);
     #if defined OVERWORLD && defined CLOUDS
     /* DRAWBUFFERS:04 */
 	gl_FragData[1] = vec4(cloud.a, 0.0, 0.0, 0.0);
@@ -135,7 +126,7 @@ void main(){
 #ifdef VSH
 
 //Varyings//
-varying vec2 texCoord;
+varying float star;
 
 varying vec3 sunVec, upVec;
 
@@ -145,9 +136,7 @@ uniform float timeAngle;
 uniform mat4 gbufferModelView;
 
 //Program//
-void main(){
-	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
-	
+void main() {
 	const vec2 sunRotationData = vec2(cos(sunPathRotation * 0.01745329251994), -sin(sunPathRotation * 0.01745329251994));
 	float ang = fract(timeAngle - 0.25);
 	ang = (ang + (cos(ang * 3.14159265358979) * -0.5 + 0.5 - ang) / 3.0) * 6.28318530717959;
@@ -156,6 +145,8 @@ void main(){
 	upVec = normalize(gbufferModelView[1].xyz);
 	
 	gl_Position = ftransform();
+
+	star = float(gl_Color.r == gl_Color.g && gl_Color.g == gl_Color.b && gl_Color.r > 0.0);
 }
 
 #endif

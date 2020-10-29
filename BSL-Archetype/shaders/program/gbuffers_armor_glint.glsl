@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -18,8 +18,8 @@ varying vec4 color;
 uniform sampler2D texture;
 
 //Program//
-void main(){
-	vec4 albedo = texture2D(texture, texCoord.xy) * color;
+void main() {
+	vec4 albedo = texture2D(texture, texCoord) * color;
 	albedo.rgb = pow(albedo.rgb,vec3(2.2));
 	
     /* DRAWBUFFERS:0 */
@@ -56,7 +56,7 @@ uniform mat4 gbufferModelViewInverse;
 #endif
 
 //Program//
-void main(){
+void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 
 	color = gl_Color;

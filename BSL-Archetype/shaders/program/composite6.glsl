@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -33,7 +33,7 @@ const bool colortex1MipmapEnabled = true;
 #endif
 
 //Common Functions//
-float GetLuminance(vec3 color){
+float GetLuminance(vec3 color) {
 	return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
@@ -47,7 +47,7 @@ float GetLuminance(vec3 color){
 #endif
 
 //Program//
-void main(){
+void main() {
     #ifndef RETRO_FILTER
     vec3 color = texture2DLod(colortex1, texCoord, 0).rgb;
 
@@ -79,7 +79,7 @@ void main(){
 varying vec2 texCoord;
 
 //Program//
-void main(){
+void main() {
 	texCoord = gl_MultiTexCoord0.xy;
 	
 	gl_Position = ftransform();

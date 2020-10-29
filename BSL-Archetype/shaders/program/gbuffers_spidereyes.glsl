@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -16,8 +16,8 @@ varying vec2 texCoord;
 uniform sampler2D texture;
 
 //Program//
-void main(){
-    vec4 albedo = texture2D(texture, texCoord.xy);
+void main() {
+    vec4 albedo = texture2D(texture, texCoord);
     albedo.rgb = pow(albedo.rgb,vec3(2.2)) * 4.0;
 	
     #ifdef WHITE_WORLD
@@ -63,7 +63,7 @@ uniform mat4 gbufferModelViewInverse;
 #endif
 
 //Program//
-void main(){
+void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 
 	#ifdef WORLD_CURVATURE

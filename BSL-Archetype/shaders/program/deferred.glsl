@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */ 
 
@@ -12,7 +12,7 @@ https://bitslablab.com
 //Varyings//
 varying vec2 texCoord;
 
-varying vec3 sunVec, upVec;
+varying vec3 sunVec, upVec, eastVec;
 
 //Uniforms//
 uniform int frameCounter;
@@ -63,7 +63,7 @@ float frametime = frameTimeCounter * ANIMATION_SPEED;
 #endif
 
 //Common Functions//
-float GetLuminance(vec3 color){
+float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
 }
 
@@ -71,7 +71,7 @@ float GetLinearDepth(float depth) {
    return (2.0 * near) / (far + near - depth * (far - near));
 }
 
-float InterleavedGradientNoise(){
+float InterleavedGradientNoise() {
 	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
 	return fract(n + frameCounter / 8.0);
 }
@@ -83,14 +83,10 @@ float InterleavedGradientNoise(){
 #include "/lib/color/waterColor.glsl"
 #include "/lib/util/dither.glsl"
 #include "/lib/atmospherics/fog.glsl"
+#include "/lib/outline/outlineOffset.glsl"
 
 #ifdef AO
 #include "/lib/lighting/ambientOcclusion.glsl"
-#endif
-
-#ifdef BLACK_OUTLINE
-#include "/lib/atmospherics/waterFog.glsl"
-#include "/lib/outline/blackOutline.glsl"
 #endif
 
 #ifdef PROMO_OUTLINE
@@ -110,7 +106,7 @@ float InterleavedGradientNoise(){
 #endif
 
 //Program//
-void main(){
+void main() {
     vec4 color = texture2D(colortex0, texCoord);
 	float z    = texture2D(depthtex0, texCoord).r;
 
@@ -120,58 +116,62 @@ void main(){
 	vec4 viewPos = gbufferProjectionInverse * (screenPos * 2.0 - 1.0);
 	viewPos /= viewPos.w;
 
-	if (z < 1.0){
+	if (z < 1.0) {
 		#if defined ADVANCED_MATERIALS && defined REFLECTION_SPECULAR
-		float smoothness = 0.0, metalness = 0.0, f0 = 0.0, skymapMod = 0.0;
-		vec3 normal = vec3(0.0), rawAlbedo = vec3(0.0);
+		float smoothness = 0.0, skyOcclusion = 0.0;
+		vec3 normal = vec3(0.0), fresnel3 = vec3(0.0);
 
-		GetMaterials(smoothness, metalness, f0, skymapMod, normal, rawAlbedo, texCoord);
-		smoothness *= smoothness;
+		GetMaterials(smoothness, skyOcclusion, normal, fresnel3, texCoord);
 
-		float fresnel = pow(clamp(1.0 + dot(normal, normalize(viewPos.xyz)), 0.0, 1.0), 5.0);
-		#if MATERIAL_FORMAT == 0
-		vec3 fresnel3 = mix(mix(vec3(f0), rawAlbedo * 0.8, metalness), vec3(1.0), fresnel);
-		if (f0 >= 0.9 && f0 < 1.0) fresnel3 = ComplexFresnel(fresnel, f0);
-		#else
-		vec3 fresnel3 = mix(mix(vec3(0.02), rawAlbedo * 0.8, metalness), vec3(1.0), fresnel);
-		#endif
-		fresnel3 *= smoothness;
-
-		if (length(fresnel3) > 0.0025){
+		if (length(fresnel3) > 0.0025) {
 			vec4 reflection = vec4(0.0);
 			vec3 skyReflection = vec3(0.0);
 			
-			#ifndef REFLECTION_PREVIOUS
-			reflection = RoughReflection(viewPos.xyz, normal, dither, smoothness, colortex0);
-			#else
-			reflection = RoughReflection(viewPos.xyz, normal, dither, smoothness, colortex5);
-			reflection.rgb = pow(reflection.rgb * 2.0, vec3(8.0));
-			#endif
+			reflection = RoughReflection(viewPos.xyz, normal, dither, smoothness);
 
-			if (reflection.a < 1.0){
+			if (reflection.a < 1.0) {
 				#ifdef OVERWORLD
-				vec3 skyReflectionPos = reflect(normalize(viewPos.xyz), normal);
-				skyReflection = GetSkyColor(skyReflectionPos, lightCol);
+				vec3 skyRefPos = reflect(normalize(viewPos.xyz), normal);
+				skyReflection = GetSkyColor(skyRefPos, lightCol, true);
+				
+				#ifdef REFLECTION_ROUGH
+				float cloudMixRate = smoothness * smoothness * (3.0 - 2.0 * smoothness);
+				#else
+				float cloudMixRate = 1.0;
+				#endif
+
+				#ifdef AURORA
+				skyReflection += DrawAurora(skyRefPos * 100.0, dither, 12) * cloudMixRate;
+				#endif
 
 				#ifdef CLOUDS
-				vec4 cloud = DrawCloud(skyReflectionPos * 100.0, skyReflection);
-				float cloudMixRate = smoothness * smoothness * (3.0 - 2.0 * smoothness);
+				vec4 cloud = DrawCloud(skyRefPos * 100.0, dither, lightCol, ambientCol);
 				skyReflection = mix(skyReflection, cloud.rgb, cloud.a * cloudMixRate);
 				#endif
-				skyReflection = mix(vec3(0.001), skyReflection * (4.0 - 3.0 * eBS), skymapMod);
+
+				float NoU = clamp(dot(normal, upVec), -1.0, 1.0);
+				float NoE = clamp(dot(normal, eastVec), -1.0, 1.0);
+				float vanillaDiffuse = (0.25 * NoU + 0.75) +
+									   (0.5 - abs(NoE)) * (1.0 - abs(NoU)) * 0.1;
+				vanillaDiffuse *= vanillaDiffuse;
+
+				skyReflection = mix(
+					vanillaDiffuse * vec3(0.001),
+					skyReflection * (4.0 - 3.0 * eBS),
+					skyOcclusion
+				);
 				#endif
 				#ifdef NETHER
-				skyReflection = netherCol * 0.005;
+				skyReflection = netherCol.rgb * 0.04;
 				#endif
 				#ifdef END
-				skyReflection = endCol * 0.025;
+				skyReflection = endCol.rgb * 0.025;
 				#endif
 			}
 
 			reflection.rgb = max(mix(skyReflection, reflection.rgb, reflection.a), vec3(0.0));
-
-			color.rgb = color.rgb * (1.0 - fresnel3 * (1.0 - f0)) +
-						reflection.rgb * fresnel3;
+			
+			color.rgb += reflection.rgb * fresnel3;
 		}
 		#endif
 
@@ -188,34 +188,22 @@ void main(){
 		#endif
 	}else{
 		#ifdef NETHER
-		color.rgb = netherCol * 0.005;
+		color.rgb = netherCol.rgb * 0.04;
 		#endif
 		#if defined END && !defined LIGHT_SHAFT
-		color.rgb+= endCol * 0.025;
+		color.rgb+= endCol.rgb * 0.025;
 		#endif
 
-		if (isEyeInWater == 2){
-			#ifdef EMISSIVE_RECOLOR
-			color.rgb = pow(blocklightCol / BLOCKLIGHT_I, vec3(4.0)) * 2.0;
-			#else
+		if (isEyeInWater == 2) {
 			color.rgb = vec3(1.0, 0.3, 0.01);
-			#endif
 		}
 
 		if (blindFactor > 0.0) color.rgb *= 1.0 - blindFactor;
 	}
-
-	#ifdef BLACK_OUTLINE
-	float wFogMult = 1.0 + eBS;
-	BlackOutline(color.rgb, depthtex0, wFogMult);
-	#endif
     
-    /* DRAWBUFFERS:0 */
-    gl_FragData[0] = color;
-	#ifndef REFLECTION_PREVIOUS
 	/*DRAWBUFFERS:05*/
+    gl_FragData[0] = color;
 	gl_FragData[1] = vec4(pow(color.rgb, vec3(0.125)) * 0.5, float(z < 1.0));
-	#endif
 }
 
 #endif
@@ -226,7 +214,7 @@ void main(){
 //Varyings//
 varying vec2 texCoord;
 
-varying vec3 sunVec, upVec;
+varying vec3 sunVec, upVec, eastVec;
 
 //Uniforms//
 uniform float timeAngle;
@@ -234,7 +222,7 @@ uniform float timeAngle;
 uniform mat4 gbufferModelView;
 
 //Program//
-void main(){
+void main() {
 	texCoord = gl_MultiTexCoord0.xy;
 	
 	gl_Position = ftransform();
@@ -245,6 +233,7 @@ void main(){
 	sunVec = normalize((gbufferModelView * vec4(vec3(-sin(ang), cos(ang) * sunRotationData) * 2000.0, 1.0)).xyz);
 
 	upVec = normalize(gbufferModelView[1].xyz);
+	eastVec = normalize(gbufferModelView[0].xyz);
 }
 
 #endif

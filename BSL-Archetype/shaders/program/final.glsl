@@ -1,5 +1,5 @@
 /* 
-BSL Shaders v7.1.05 by Capt Tatsu 
+BSL Shaders v7.2.01 by Capt Tatsu 
 https://bitslablab.com 
 */
 
@@ -19,14 +19,14 @@ uniform float viewWidth, viewHeight;
 
 //Optifine Constants//
 /*
-const int colortex0Format = R11F_G11F_B10F; //main
-const int colortex1Format = RGB8; //raw translucent, bloom
-const int colortex2Format = RGBA16; //temporal stuff
+const int colortex0Format = R11F_G11F_B10F; //main scene
+const int colortex1Format = RGB8; //raw translucent, bloom, final scene
+const int colortex2Format = RGBA16; //temporal data
 const int colortex3Format = RGB8; //specular data
 const int gaux1Format = R8; //cloud alpha
 const int gaux2Format = RGB10_A2; //reflection image
 const int gaux3Format = RGB16; //normals
-const int gaux4Format = RGB16; //specular highlight
+const int gaux4Format = RGB16; //fresnel
 */
 
 const bool shadowHardwareFiltering = true;
@@ -45,13 +45,13 @@ vec2 sharpenOffsets[4] = vec2[4](
 	vec2( 0.0, -1.0)
 );
 
-void SharpenFilter(inout vec3 color){
+void SharpenFilter(inout vec3 color) {
 	float mult = SHARPEN * 0.025;
 	vec2 view = 1.0 / vec2(viewWidth, viewHeight);
 
 	color *= SHARPEN * 0.1 + 1.0;
 
-	for(int i = 0; i < 4; i++){
+	for(int i = 0; i < 4; i++) {
 		vec2 offset = sharpenOffsets[i] * view;
 		color -= texture2D(colortex1, texCoord + offset).rgb * mult;
 	}
@@ -59,7 +59,7 @@ void SharpenFilter(inout vec3 color){
 #endif
 
 //Program//
-void main(){
+void main() {
 	vec3 color = texture2D(colortex1, texCoord).rgb;
 
 	#if SHARPEN > 0
@@ -78,7 +78,7 @@ void main(){
 varying vec2 texCoord;
 
 //Program//
-void main(){
+void main() {
 	texCoord = gl_MultiTexCoord0.xy;
 	
 	gl_Position = ftransform();
