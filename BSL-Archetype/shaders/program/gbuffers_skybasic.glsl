@@ -98,8 +98,12 @@ void main() {
 	albedo.rgb += DrawAurora(viewPos.xyz, dither, 20);
 	#endif
 	
-	#ifdef CLOUDS
+	#if CLOUDS > 0
+	#if CLOUDS == 1
 	vec4 cloud = DrawCloud(viewPos.xyz, dither, lightCol, ambientCol);
+	#else
+	vec4 cloud = DrawCloud(viewPos.xyz, albedo.rgb);
+	#endif
 	albedo.rgb = mix(albedo.rgb, cloud.rgb, cloud.a);
 	#endif
 

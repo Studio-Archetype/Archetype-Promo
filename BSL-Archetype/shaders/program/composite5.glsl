@@ -235,7 +235,7 @@ void main() {
 	
 	ColorSaturation(color);
 	
-	vec3 filmGrain = texture2D(noisetex, texCoord * vec2(viewWidth, viewHeight) / 512.0).rgb;
+	float filmGrain = texture2D(noisetex, texCoord * vec2(viewWidth, viewHeight) / 512.0).b;
 	color += (filmGrain - 0.25) / 128.0;
 	
 	/*DRAWBUFFERS:12*/

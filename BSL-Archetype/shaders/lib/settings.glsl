@@ -25,7 +25,7 @@ https://bitslablab.com
   #define REFLECTION_RAIN 0 //[0 1 2]
 //#define REFLECTION_ROUGH
 //#define PARALLAX
-  #define PARALLAX_DEPTH 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00]
+  #define PARALLAX_DEPTH 0.25 //[0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50]
 //#define SELF_SHADOW
   #define SELF_SHADOW_ANGLE 2.0 //[0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5 6.0 6.5 7.0 7.5 8.0]
   #define PARALLAX_QUALITY 64 //[16 32 64 128 256 512]
@@ -217,22 +217,26 @@ https://bitslablab.com
 //#define NETHER_VANILLA
 
 //Sky//
-  #define CLOUDS
+  #define CLOUDS 2 //[0 1 2]
   #define STARS
   #define SKY_GROUND 2 //[0 1 2]
   #define HORIZON_DISTANCE 2.0 //[1.0 1.5 2.0 2.5 3.0]
   #define SKYBOX_BRIGHTNESS 2.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00]
 
   #define CLOUD_THICKNESS 4 //[1 2 4 8 16]
-  #define CLOUD_AMOUNT 11.0 //[13.0 12.0 11.0 10.0 9.0]
-  #define CLOUD_HEIGHT 15.0 //[5.0 10.0 15.0 20.0 25.0]
+  #define CLOUD_AMOUNT 10.0 //[12.0 11.0 10.0 9.0 8.0]
+  #define CLOUD_HEIGHT 10.0 //[5.0 7.5 10.0 12.5 15.0]
   #define CLOUD_SPEED 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 2.50 3.00 3.50 4.00]
   #define CLOUD_OPACITY 1.0 //[0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0]
   #define CLOUD_BRIGHTNESS 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00]
 
 //Water//
-  #define WATER_NORMALS 0 //[0 1 2]
-//#define WATER_PARALLAX
+  #define WATER_NORMALS
+  #define WATER_PARALLAX
+  #define WATER_BUMP 0.25 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00]
+  #define WATER_DETAIL 0.3 //[0.1 0.2 0.3 0.4 0.5]
+  #define WATER_SHARPNESS 0.2 //[0.8 0.5 0.2]
+  #define WATER_SPEED 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 2.50 3.00 3.50 4.00]
 
 //Waving//
   #define WAVING_GRASS

@@ -14,7 +14,8 @@ uniform sampler2D shadowcolor0;
 #endif
 */
 
-vec2 shadowoffsets[8] = vec2[8](
+vec2 shadowOffsets[9] = vec2[9](
+    vec2( 0.0, 0.0),
     vec2( 0.0, 1.0),
     vec2( 0.7, 0.7),
     vec2( 1.0, 0.0),
@@ -40,43 +41,66 @@ vec2 offsetDist(float x, int s) {
 
 vec3 SampleBasicShadow(vec3 shadowPos) {
     float shadow0 = shadow2D(shadowtex0, vec3(shadowPos.st, shadowPos.z)).x;
-    //float shadow0 = texture2DShadow(shadowtex0,vec3(shadowPos.st, shadowPos.z));
 
-    vec3 shadowcol = vec3(0.0);
+    vec3 shadowCol = vec3(0.0);
     #ifdef SHADOW_COLOR
-    if (shadow0 < 1.0) {
-        float shadow1 = shadow2D(shadowtex1, vec3(shadowPos.st, shadowPos.z)).x;
-        //float shadow1 = texture2DShadow(shadowtex1,vec3(shadowPos.st, shadowPos.z));
-
-        if (shadow1 > 0.0) shadowcol = texture2D(shadowcolor0, shadowPos.st).rgb * shadow1;
+    if(shadow0 < 1.0){
+        shadowCol = texture2D(shadowcolor0, shadowPos.st).rgb *
+                    shadow2D(shadowtex1, vec3(shadowPos.st, shadowPos.z)).x;
     }
     #endif
 
-    return clamp(shadowcol * (1.0 - shadow0) + shadow0, vec3(0.0), vec3(1.0));
+    return clamp(shadowCol * (1.0 - shadow0) + shadow0, vec3(0.0), vec3(1.0));
 }
 
 vec3 SampleFilteredShadow(vec3 shadowPos, float offset) {
-    vec3 shadow = SampleBasicShadow(vec3(shadowPos.st, shadowPos.z));
-
-    for(int i = 0; i < 8; i++) {
-        shadow += SampleBasicShadow(vec3(offset * shadowoffsets[i] + shadowPos.st, shadowPos.z));
+    float shadow0 = 0.0;
+    
+    for(int i = 0; i < 9; i++){
+        vec2 shadowOffset = shadowOffsets[i] * offset;
+        shadow0 += shadow2D(shadowtex0, vec3(shadowPos.st + shadowOffset, shadowPos.z)).x;
     }
+    shadow0 /= 9.0;
 
-    return shadow * 0.11111;
+    vec3 shadowCol = vec3(0.0);
+    #ifdef SHADOW_COLOR
+    if(shadow0 < 1.0){
+        for(int i = 0; i < 9; i++){
+            vec2 shadowOffset = shadowOffsets[i] * offset;
+            shadowCol += texture2D(shadowcolor0, shadowPos.st + shadowOffset).rgb *
+                         shadow2D(shadowtex1, vec3(shadowPos.st + shadowOffset, shadowPos.z)).x;
+        }
+        shadowCol /= 9.0;
+    }
+    #endif
+
+    return clamp(shadowCol * (1.0 - shadow0) + shadow0, vec3(0.0), vec3(1.0));
 }
 
 vec3 SampleTAAFilteredShadow(vec3 shadowPos, float offset) {
     float noise = InterleavedGradientNoise();
 
-    vec3 shadow = vec3(0.0);
-
-    for(int i = 0; i < 2; i++) {
-        vec2 offset = offsetDist(noise + i, 2) * offset;
-        shadow += SampleBasicShadow(vec3(shadowPos.st + offset, shadowPos.z));
-        shadow += SampleBasicShadow(vec3(shadowPos.st - offset, shadowPos.z));
-    }
+    float shadow0 = 0.0;
     
-    return shadow * 0.25;
+    for(int i = 0; i < 3; i++){
+        vec2 shadowOffset = offsetDist(noise + i, 3) * offset;
+        shadow0 += shadow2D(shadowtex0, vec3(shadowPos.st + shadowOffset, shadowPos.z)).x;
+    }
+    shadow0 /= 3.0;
+
+    vec3 shadowCol = vec3(0.0);
+    #ifdef SHADOW_COLOR
+    if(shadow0 < 1.0){
+        for(int i = 0; i < 3; i++){
+            vec2 shadowOffset = offsetDist(noise + i, 3) * offset;
+            shadowCol += texture2D(shadowcolor0, shadowPos.st + shadowOffset).rgb *
+                         shadow2D(shadowtex1, vec3(shadowPos.st + shadowOffset, shadowPos.z)).x;
+        }
+        shadowCol /= 3.0;
+    }
+    #endif
+
+    return clamp(shadowCol * (1.0 - shadow0) + shadow0, vec3(0.0), vec3(1.0));
 }
 
 vec3 GetShadow(vec3 shadowPos, float bias, float offset) {

@@ -37,12 +37,14 @@ void NormalFog(inout vec3 color, vec3 viewPos) {
 	fog = 1.0 - exp(-2.0 * pow(fog, 0.25 * clearDay + 1.25) * eBS);
 	vec3 fogColor = GetFogColor(viewPos);
 
-	float vanillaFog = 1.0 - (far - (length(viewPos) + 20.0)) * 5.0 / far;
-	fog = mix(fog, 1.0, clamp(vanillaFog, 0.0, 1.0));
+	if(isEyeInWater == 0.0){
+		float vanillaFog = 1.0 - (far - (length(viewPos) + 20.0)) * 5.0 / far;
+		fog = mix(fog, 1.0, clamp(vanillaFog, 0.0, 1.0));
 
-	vec3 vanillaFogColor = GetSkyColor(viewPos, lightCol, false);
-	vanillaFogColor *= (4.0 - 3.0 * eBS) * (1.0 + nightVision);
-	fogColor = mix(fogColor, vanillaFogColor, clamp(vanillaFog + 1.0, 0.0, 1.0));
+		vec3 vanillaFogColor = GetSkyColor(viewPos, lightCol, false);
+		vanillaFogColor *= (4.0 - 3.0 * eBS) * (1.0 + nightVision);
+		fogColor = mix(fogColor, vanillaFogColor, clamp(vanillaFog + 1.0, 0.0, 1.0));
+	}
 	#endif
 
 	#ifdef NETHER

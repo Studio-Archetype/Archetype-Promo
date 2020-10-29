@@ -99,52 +99,29 @@ float InterleavedGradientNoise() {
 	return fract(n + frameCounter / 8.0);
 }
 
-float GetWaterHeightMap(vec3 worldPos, vec3 viewPos) {
+float GetWaterHeightMap(vec3 worldPos, vec2 offset) {
     float noise = 0.0;
-
-    float mult = clamp(-dot(normalize(normal), normalize(viewPos)) * 8.0, 0.0, 1.0) / 
-                 sqrt(sqrt(max(dist, 4.0)));
     
-    vec2 wind = vec2(frametime) * 0.35;
-    float verticalOffset = worldPos.y * 0.2;
+    vec2 wind = vec2(frametime) * 0.35 * WATER_SPEED;
 
-    if (mult > 0.01) {
-        #if WATER_NORMALS == 1
-		noise = texture2D(noisetex, (worldPos.xz + wind - verticalOffset) * 0.002).r * 1.0;
-		noise+= texture2D(noisetex, (worldPos.xz - wind - verticalOffset) * 0.003).r * 0.8;
-		noise-= texture2D(noisetex, (worldPos.xz + wind + verticalOffset) * 0.005).r * 0.6;
-		noise+= texture2D(noisetex, (worldPos.xz - wind - verticalOffset) * 0.010).r * 0.4;
-		noise-= texture2D(noisetex, (worldPos.xz + wind + verticalOffset) * 0.015).r * 0.2;
+	worldPos.xz -= worldPos.y * 0.2;
 
-		noise*= mult;
-		#elif WATER_NORMALS == 2
-        float lacunarity = 1.0 / WATER_SIZE, persistance = 1.0, weight = 0.0;
+	#ifdef WATER_NORMALS
+	offset /= 256.0;
+	float noiseA = texture2D(noisetex, (worldPos.xz - wind * 1.4) / 256.0 + offset).g;
+	float noiseB = texture2D(noisetex, (worldPos.xz + wind) / 48.0 + offset).g;
+	
+	noise = mix(noiseA, noiseB, WATER_DETAIL);
+	#endif
 
-        mult *= WATER_BUMP * WATER_SIZE / 450.0;
-        wind *= WATER_SPEED;
-
-        for(int i = 0; i < WATER_OCTAVE; i++) {
-            float windSign = mod(i,2) * 2.0 - 1.0;
-			vec2 noiseCoord = worldPos.xz + wind * windSign - verticalOffset;
-            noise += texture2D(noisetex, noiseCoord * lacunarity).r * persistance;
-            if (i == 0) noise = -noise;
-
-            weight += persistance;
-            lacunarity *= WATER_LACUNARITY;
-            persistance *= WATER_PERSISTANCE;
-        }
-        noise *= mult / weight;
-		#endif
-    }
-
-    return noise;
+    return -noise * WATER_BUMP;
 }
 
-vec3 GetParallaxWaves(vec3 worldPos, vec3 viewPos, vec3 viewVector) {
+vec3 GetParallaxWaves(vec3 worldPos, vec3 viewVector) {
 	vec3 parallaxPos = worldPos;
 	
 	for(int i = 0; i < 4; i++) {
-		float height = (GetWaterHeightMap(parallaxPos, viewPos) - 0.5) * 0.2;
+		float height = GetWaterHeightMap(parallaxPos, vec2(0.0)) + 0.25;
 		parallaxPos.xz += height * viewVector.xy / dist;
 	}
 	return parallaxPos;
@@ -153,26 +130,24 @@ vec3 GetParallaxWaves(vec3 worldPos, vec3 viewPos, vec3 viewVector) {
 vec3 GetWaterNormal(vec3 worldPos, vec3 viewPos, vec3 viewVector) {
 	vec3 waterPos = worldPos + cameraPosition;
 	#ifdef WATER_PARALLAX
-	waterPos = GetParallaxWaves(waterPos, viewPos, viewVector);
+	waterPos = GetParallaxWaves(waterPos, viewVector);
 	#endif
 
-	#if WATER_NORMALS == 2
 	float normalOffset = WATER_SHARPNESS;
-	#else
-	float normalOffset = 0.1;
-	#endif
+	
+	float fresnel = pow(clamp(1.0 + dot(normalize(normal), normalize(viewPos)), 0.0, 1.0), 7.5);
+	float normalStrength = 0.35 * (1.0 - fresnel);
 
-	float h0 = GetWaterHeightMap(waterPos, viewPos);
-	float h1 = GetWaterHeightMap(waterPos + vec3( normalOffset, 0.0, 0.0), viewPos);
-	float h2 = GetWaterHeightMap(waterPos + vec3(-normalOffset, 0.0, 0.0), viewPos);
-	float h3 = GetWaterHeightMap(waterPos + vec3(0.0, 0.0,  normalOffset), viewPos);
-	float h4 = GetWaterHeightMap(waterPos + vec3(0.0, 0.0, -normalOffset), viewPos);
+	float h1 = GetWaterHeightMap(waterPos, vec2( normalOffset, 0.0));
+	float h2 = GetWaterHeightMap(waterPos, vec2(-normalOffset, 0.0));
+	float h3 = GetWaterHeightMap(waterPos, vec2(0.0,  normalOffset));
+	float h4 = GetWaterHeightMap(waterPos, vec2(0.0, -normalOffset));
 
 	float xDelta = (h1 - h2) / normalOffset;
 	float yDelta = (h3 - h4) / normalOffset;
 
 	vec3 normalMap = vec3(xDelta, yDelta, 1.0 - (xDelta * xDelta + yDelta * yDelta));
-	return normalMap * 0.03 + vec3(0.0, 0.0, 0.97);
+	return normalMap * normalStrength + vec3(0.0, 0.0, 1.0 - normalStrength);
 }
 
 //Includes//
@@ -255,7 +230,7 @@ void main() {
 							  tangent.y, binormal.y, normal.y,
 							  tangent.z, binormal.z, normal.z);
 
-		#if WATER_NORMALS == 1 || WATER_NORMALS == 2
+		#ifdef WATER_NORMALS
 		if (water > 0.5) {
 			normalMap = GetWaterNormal(worldPos, viewPos, viewVector);
 			newNormal = clamp(normalize(normalMap * tbnMatrix), vec3(-1.0), vec3(1.0));
@@ -391,8 +366,12 @@ void main() {
 				skyReflection += DrawAurora(skyRefPos * 100.0, dither, 12);
 				#endif
 
-				#ifdef CLOUDS
+				#if CLOUDS > 0
+				#if CLOUDS == 1
 				vec4 cloud = DrawCloud(skyRefPos * 100.0, dither, lightCol, ambientCol);
+				#else
+				vec4 cloud = DrawCloud(skyRefPos * 100.0, skyReflection);
+				#endif
 				skyReflection = mix(skyReflection, cloud.rgb, cloud.a);
 				#endif
 
@@ -447,8 +426,12 @@ void main() {
 					skyReflection += DrawAurora(skyRefPos * 100.0, dither, 12);
 					#endif
 					
-					#ifdef CLOUDS
+					#if CLOUDS > 0
+					#if CLOUDS == 1
 					vec4 cloud = DrawCloud(skyRefPos * 100.0, dither, lightCol, ambientCol);
+					#else
+					vec4 cloud = DrawCloud(skyRefPos * 100.0, skyReflection);
+					#endif
 					skyReflection = mix(skyReflection, cloud.rgb, cloud.a);
 					#endif
 

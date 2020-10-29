@@ -14,7 +14,7 @@ vec2 GetParallaxCoord(float parallaxFade) {
         float minHeight = 1.0 - 1.0 / PARALLAX_QUALITY;
 
         if (viewVector.z < 0.0 && ReadNormal(vTexCoord.st).a < minHeight && normalCheck > -1.999) {
-            float multiplier = 0.2 * (1.0 - parallaxFade) * PARALLAX_DEPTH /
+            float multiplier = PARALLAX_DEPTH * (1.0 - parallaxFade) /
                                (-viewVector.z * PARALLAX_QUALITY);
             vec2 interval = viewVector.xy * multiplier;
             for(int i = 0; i < PARALLAX_QUALITY; i++) {

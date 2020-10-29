@@ -1,12 +1,9 @@
 float GetPuddles(vec3 pos) {
 	pos = (pos + cameraPosition) * 0.005;
 
-	float noise = texture2D(noisetex,pos.xz).r;
-		  noise+= texture2D(noisetex,pos.xz * 0.5   ).r * 2.0;
-		  noise+= texture2D(noisetex,pos.xz * 0.25  ).r * 4.0;
-		  noise+= texture2D(noisetex,pos.xz * 0.125 ).r * 8.0;
-		  noise+= texture2D(noisetex,pos.xz * 0.0625).r * 16.0;
-		  noise = max(abs(noise - 15.5) * 0.8 - 1.2, 0.0) * wetness;
+	float noise = texture2D(noisetex,pos.xz * 0.5   ).r * 8.0;
+		  noise+= texture2D(noisetex,pos.xz * 0.0625).r * 24.0;
+		  noise = max(abs(noise - 16.0) * 0.8 - 1.2, 0.0) * wetness;
 		  noise /= sqrt(noise * noise + 1.0);
 
 	return clamp(noise, 0.0, 0.95);
@@ -60,7 +57,7 @@ float puddleH(vec3 pos, vec3 fpos) {
 				 sqrt(sqrt(max(length(pos), 4.0)));
 	
 	if (mult > 0.01) {
-		noise = textureBicubic(noisetex,pos.xz / 32.0).r;
+		noise = textureBicubic(noisetex,pos.xz / 128.0).b;
 	}
 
 	noise = sin((noise + frametime) * 16.0) * 0.15 + 0.5;

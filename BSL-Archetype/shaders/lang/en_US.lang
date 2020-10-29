@@ -130,6 +130,16 @@ option.PARALLAX.comment=Adds displacement on a surface using height map.
 
 option.PARALLAX_DEPTH=Parallax Depth
 option.PARALLAX_DEPTH.comment=Adjusts parallax deepness.
+value.PARALLAX_DEPTH.0.05=5 cm
+value.PARALLAX_DEPTH.0.10=10 cm
+value.PARALLAX_DEPTH.0.15=15 cm
+value.PARALLAX_DEPTH.0.20=20 cm
+value.PARALLAX_DEPTH.0.25=25 cm
+value.PARALLAX_DEPTH.0.30=30 cm
+value.PARALLAX_DEPTH.0.35=35 cm
+value.PARALLAX_DEPTH.0.40=40 cm
+value.PARALLAX_DEPTH.0.45=45 cm
+value.PARALLAX_DEPTH.0.50=50 cm
 
 option.SELF_SHADOW=Self Shadows
 option.SELF_SHADOW.comment=Allows a surface to cast shadow to itself using heightmap.
@@ -401,6 +411,9 @@ option.NETHER_VANILLA.comment=Use vanilla nether color.
 
 option.CLOUDS=Clouds
 option.CLOUDS.comment=Enables clouds. §a[+]§rThis effect benefits from TAA.
+value.CLOUDS.0=§cOFF
+value.CLOUDS.1=BSL
+value.CLOUDS.2=Default
 
 option.STARS=Stars
 option.STARS.comment=Enables stars.
@@ -435,19 +448,19 @@ value.CLOUD_THICKNESS.16=Very High
 
 option.CLOUD_AMOUNT=Amount
 option.CLOUD_AMOUNT.comment=Adjusts cloud amount.
-value.CLOUD_AMOUNT.13.0=Very Low
-value.CLOUD_AMOUNT.12.0=Low
-value.CLOUD_AMOUNT.11.0=Medium
-value.CLOUD_AMOUNT.10.0=High
-value.CLOUD_AMOUNT.9.0 =Very High
+value.CLOUD_AMOUNT.12.0=Very Low
+value.CLOUD_AMOUNT.11.0=Low
+value.CLOUD_AMOUNT.10.0=Medium
+value.CLOUD_AMOUNT.9.0=High
+value.CLOUD_AMOUNT.8.0 =Very High
 
 option.CLOUD_HEIGHT=Height
 option.CLOUD_HEIGHT.comment=Adjusts cloud height.
 value.CLOUD_HEIGHT.5.0 =Very Low
-value.CLOUD_HEIGHT.10.0=Low
-value.CLOUD_HEIGHT.15.0=Medium
-value.CLOUD_HEIGHT.20.0=High
-value.CLOUD_HEIGHT.25.0=Very High
+value.CLOUD_HEIGHT.7.5=Low
+value.CLOUD_HEIGHT.10.0=Medium
+value.CLOUD_HEIGHT.12.5=High
+value.CLOUD_HEIGHT.15.0=Very High
 
 option.CLOUD_SPEED=Speed
 option.CLOUD_SPEED.comment=Adjusts cloud speed.
@@ -460,33 +473,29 @@ option.CLOUD_BRIGHTNESS.comment=Adjusts cloud brightness.
 
 option.WATER_NORMALS=Normals
 option.WATER_NORMALS.comment=Enables realtime-generated normal mapping for water.
-value.WATER_NORMALS.0=§cOFF
-value.WATER_NORMALS.1=Default
-value.WATER_NORMALS.2=Custom
 
 option.WATER_PARALLAX=Parallax
 option.WATER_PARALLAX.comment=Enables water displacement.
 
-option.WATER_OCTAVE=Octaves
-option.WATER_OCTAVE.comment=Adjusts how many layers of noise used for custom water normals.
+option.WATER_DETAIL=Detail
+option.WATER_DETAIL.comment=Adjusts the ratio between large and small water normals.
+value.WATER_DETAIL.0.1=10%
+value.WATER_DETAIL.0.2=20%
+value.WATER_DETAIL.0.3=30%
+value.WATER_DETAIL.0.4=40%
+value.WATER_DETAIL.0.5=50%
 
 option.WATER_BUMP=Bumpiness
-option.WATER_BUMP.comment=Adjusts the intensity of custom water normals.
-
-option.WATER_LACUNARITY=Lacunarity
-option.WATER_LACUNARITY.comment=Adjusts noise size reduction each octave.
-
-option.WATER_PERSISTANCE=Persistance
-option.WATER_PERSISTANCE.comment=Adjusts noise intensity reduction each octave.
+option.WATER_BUMP.comment=Adjusts the intensity of water normals.
 
 option.WATER_SHARPNESS=Sharpness
-option.WATER_SHARPNESS.comment=Adjusts the sharpness of custom water normals.
-
-option.WATER_SIZE=Size
-option.WATER_SIZE.comment=Adjusts the base noise size for custom water normals.
+option.WATER_SHARPNESS.comment=Adjusts the sharpness of water normals.
+value.WATER_SHARPNESS.0.8=Low
+value.WATER_SHARPNESS.0.5=Medium
+value.WATER_SHARPNESS.0.2=High
 
 option.WATER_SPEED=Speed
-option.WATER_SPEED.comment=Adjusts the noise speed for custom water normals.
+option.WATER_SPEED.comment=Adjusts the noise speed for water normals.
 
 option.WAVING_GRASS=Grass
 option.WAVING_CROPS=Crops

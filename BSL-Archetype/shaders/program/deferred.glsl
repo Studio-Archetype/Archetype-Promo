@@ -179,8 +179,12 @@ void main() {
 				skyReflection += DrawAurora(skyRefPos * 100.0, dither, 12) * cloudMixRate;
 				#endif
 
-				#ifdef CLOUDS
+				#if CLOUDS > 0
+				#if CLOUDS == 1
 				vec4 cloud = DrawCloud(skyRefPos * 100.0, dither, lightCol, ambientCol);
+				#else
+				vec4 cloud = DrawCloud(skyRefPos * 100.0, skyReflection);
+				#endif
 				skyReflection = mix(skyReflection, cloud.rgb, cloud.a * cloudMixRate);
 				#endif
 
