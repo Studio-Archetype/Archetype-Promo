@@ -34,7 +34,7 @@ https://bitslablab.com
   #define TEMPORARY_FIX
 
 //Post Process//
-  #define BLOOM
+//#define BLOOM
   #define BLOOM_STRENGTH 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00]
   #define LENS_FLARE
   #define LENS_FLARE_STRENGTH 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00]
