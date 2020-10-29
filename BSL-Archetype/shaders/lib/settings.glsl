@@ -19,10 +19,11 @@ https://bitslablab.com
   #define ADVANCED_MATERIALS
   #define PROMO_OUTLINE
 //#define WHITE_WORLD
+  #define SUN_REFLECTION
 
 //#define REFLECTION_SPECULAR
   #define REFLECTION_RAIN 0 //[0 1 2]
-  #define REFLECTION_ROUGH
+//#define REFLECTION_ROUGH
 //#define PARALLAX
   #define PARALLAX_DEPTH 1.00 //[0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00]
 //#define SELF_SHADOW

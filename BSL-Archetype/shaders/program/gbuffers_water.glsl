@@ -380,10 +380,12 @@ void main() {
 				#ifdef OVERWORLD
 				skyReflection = GetSkyColor(skyRefPos, lightCol, true);
 				
+				#ifdef SUN_REFLECTION
 				vec3 specular = GetSpecularHighlight(newNormal, normalize(viewPos), lightVec,
 				                	 				 0.9, vec3(0.02), specularColor, shadow);
 				
 				skyReflection += specular / ((4.0 - 3.0 * eBS) * fresnel * albedo.a);
+				#endif
 
 				#ifdef AURORA
 				skyReflection += DrawAurora(skyRefPos * 100.0, dither, 12);
