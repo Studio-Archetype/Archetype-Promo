@@ -18,7 +18,7 @@ varying vec3 sunVec, upVec;
 uniform int isEyeInWater;
 uniform int worldTime;
 
-uniform float blindFactor;
+uniform float blindFactor, nightVision;
 uniform float frameTimeCounter;
 uniform float rainStrength;
 uniform float timeAngle, timeBrightness;
@@ -122,6 +122,17 @@ void ColorGrading(inout vec3 color) {
 	color = mix(color, cgTint, CG_TM);
 }
 
+void ShadowState(inout vec3 color){
+	if (nightVision > 0.0) {
+		float luma = GetLuminance(color);
+		color = mix(
+					color,
+					max(pow(vec3(luma), 1.0 / vec3(0.65, 0.8, 1.0)) - 0.002, vec3(0.0)),
+					nightVision
+				);
+	}
+}
+
 void BSLTonemap(inout vec3 color) {
 	color = TONEMAP_EXPOSURE * color;
 	color = color / pow(pow(color, vec3(TONEMAP_WHITE_CURVE)) + 1.0, vec3(1.0 / TONEMAP_WHITE_CURVE));
@@ -201,6 +212,7 @@ void main() {
 	ColorGrading(color);
 	#endif
 	
+	ShadowState(color);
 	BSLTonemap(color);
 	
 	#ifdef LENS_FLARE
@@ -208,7 +220,8 @@ void main() {
 	float truePos = sign(sunVec.z);
 	      
     float visibleSun = float(texture2D(depthtex1, lightPos + 0.5).r >= 1.0);
-	visibleSun *= max(1.0 - isEyeInWater, eBS) * (1.0 - blindFactor) * (1.0 - rainStrength);
+	visibleSun *= max(1.0 - isEyeInWater, eBS) * (1.0 - blindFactor) * (1.0 - rainStrength) * 
+				  (1.0 - nightVision);
 	
 	float multiplier = tempVisibleSun * LENS_FLARE_STRENGTH * 0.5;
 

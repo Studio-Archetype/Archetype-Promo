@@ -83,7 +83,7 @@ void GetLighting(inout vec3 albedo, out vec3 shadow, vec3 viewPos, vec3 worldPos
     
     vec3 emissiveLighting = albedo.rgb * (emissive * 4.0 / vanillaDiffuse);
 
-    float nightVisionLighting = nightVision * 0.25;
+    float nightVisionLighting = nightVision * 0.0625;
     
     albedo *= sceneLighting + blockLighting + emissiveLighting + nightVisionLighting + minLighting;
     albedo *= vanillaDiffuse * smoothLighting * smoothLighting;

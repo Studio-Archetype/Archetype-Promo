@@ -115,7 +115,11 @@ void GlowOutline(inout vec3 color){
 #include "/lib/color/blocklightColor.glsl"
 #include "/lib/color/waterColor.glsl"
 #include "/lib/util/dither.glsl"
+
+#ifdef OVERWORLD
 #include "/lib/atmospherics/sky.glsl"
+#endif
+
 #include "/lib/atmospherics/fog.glsl"
 #include "/lib/outline/outlineOffset.glsl"
 
@@ -135,7 +139,6 @@ void GlowOutline(inout vec3 color){
 #include "/lib/reflections/roughReflections.glsl"
 #ifdef OVERWORLD
 #include "/lib/atmospherics/clouds.glsl"
-#include "/lib/atmospherics/sky.glsl"
 #endif
 #endif
 
